@@ -1,0 +1,69 @@
+everything good here
+
+---
+
+everything good here? check server
+
+---
+
+functionality wise
+
+---
+
+yea
+
+---
+
+so backend is done
+
+---
+
+yes do
+
+---
+
+yes go ahead
+
+---
+
+so backend done now?
+
+---
+
+if possible can u do the auth and make it like a real product instead of a cheap hackathon project
+
+---
+
+u r doing git commits constantly right?
+
+---
+
+yes do commit when you have substantial progress, don't rely on me saying do git commit
+
+---
+
+everything good now?
+
+---
+
+ok now look at frontend, look for bugs and features and improvements which can be done in the future
+
+---
+
+go ahead make todos for this finish them also don't forget to do the git commit and push them too
+
+---
+
+also spwan multiple subagents to finish these tasks fast
+
+---
+
+every task done?
+
+---
+
+check the whole repo and tell me if the project is done?
+
+---
+
+finish them, my main focus is functinality only for now and also add health check endpoint + update readme too

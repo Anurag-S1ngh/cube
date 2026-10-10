@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4K3WB7PFV5TZ535DY8ZN2DN",
+  "session_id": "ses_eda4d7eb6ffeziFdwt0KpEH2bL",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-10T14:36:22.415841Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "save_step_count": 1,
+  "files_touched": [
+    "apps/server/src/routes/investigations.ts"
+  ],
+  "agent": "OpenCode",
+  "model": "deepseek-v4.1-flash",
+  "turn_id": "09bf54c23cb2",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 457955,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 57462144,
+    "output_tokens": 100388,
+    "api_call_count": 389
+  },
+  "session_metrics": {
+    "turn_count": 19
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-10T14:36:22.31273Z",
+    "agent_lines": 7,
+    "agent_removed": 10,
+    "human_added": 60,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 67,
+    "total_lines_changed": 133,
+    "agent_percentage": 12.781954887218044,
+    "metric_version": 2
+  }
+}
