@@ -1,0 +1,18 @@
+You are verifying a recent frontend change in a Bun + Turborepo monorepo. Do NOT modify any files. Do NOT run any git commit/push. Only run commands and report.
+
+Repo root (contains spaces — always quote it): "/Users/adityasingh/Downloads/FullStack Web Development/hackathon/cube"
+
+Run these and capture results:
+1. From the repo root: `bun run check-types` (runs tsc across all 6 workspaces). Expect all tasks successful.
+2. From the repo root: `bun run test` (runs bun test in server and agent packages). Expect all pass.
+3. From the repo root, in the web app: run `bun run build` with workdir set to the `apps/web` directory. This is a Next.js 16 production build. It may take ~1-2 minutes.
+
+IMPORTANT: Do NOT start any dev server (do not run `next dev` or `bun run dev`). Another process may be occupying ports.
+
+Report back a concise summary:
+- Exit code / success of each command
+- Exact error text (full) if any command fails
+- For the web build: the printed route table and whether it succeeded
+- Do not include long success logs, just confirmations.
+
+If everything passes, say so explicitly.
