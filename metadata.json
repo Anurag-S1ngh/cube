@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4K32N11ACKPYJBDFDWVY0HZ",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "apps/server/.env.schema",
+    "apps/server/src/routes/projects.ts",
+    "apps/server/src/routes/webhooks.ts",
+    "apps/server/src/scripts/seed-demo.ts",
+    "apps/server/src/webhookSecret.ts",
+    "packages/agent/src/ingest.ts",
+    "packages/db/src/schema/billing.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 13301,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 5610624,
+    "output_tokens": 7249,
+    "api_call_count": 25
+  }
+}

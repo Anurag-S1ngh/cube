@@ -1,0 +1,46 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4K32N11ACKPYJBDFDWVY0HZ",
+  "session_id": "ses_eda4d7eb6ffeziFdwt0KpEH2bL",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-10T14:22:31.289625Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "apps/server/.env.schema",
+    "apps/server/src/routes/projects.ts",
+    "apps/server/src/routes/webhooks.ts",
+    "apps/server/src/scripts/seed-demo.ts",
+    "apps/server/src/webhookSecret.ts",
+    "packages/agent/src/ingest.ts",
+    "packages/db/src/schema/billing.ts"
+  ],
+  "agent": "OpenCode",
+  "model": "deepseek-v4.1-flash",
+  "turn_id": "09bf54c23cb2",
+  "checkpoint_transcript_start": 321,
+  "transcript_lines_at_start": 321,
+  "compact_transcript_start": 321,
+  "token_usage": {
+    "input_tokens": 13301,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 5610624,
+    "output_tokens": 7249,
+    "api_call_count": 25
+  },
+  "session_metrics": {
+    "turn_count": 19
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-10T14:22:31.180149Z",
+    "agent_lines": 147,
+    "agent_removed": 12,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 147,
+    "total_lines_changed": 159,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
