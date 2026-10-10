@@ -1,0 +1,58 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4KB77GM4GTBT1AYM8Z27TR9",
+  "session_id": "ses_eda4d7eb6ffeziFdwt0KpEH2bL",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-10T16:45:05.669904Z",
+  "branch": "main",
+  "checkpoints_count": 7,
+  "files_touched": [
+    "apps/server/src/index.ts",
+    "apps/server/src/routes/webhookEndpoints.ts",
+    "apps/server/src/webhookDispatcher.ts",
+    "apps/web/src/app/settings/api-keys/page.tsx",
+    "apps/web/src/components/api-key-manager.tsx",
+    "apps/web/src/components/webhook-endpoints-manager.tsx",
+    "apps/web/src/lib/api-client.ts",
+    "apps/web/src/lib/api.ts",
+    "apps/web/src/lib/types.ts",
+    "packages/agent/src/approvals.ts",
+    "packages/agent/src/context.ts",
+    "packages/agent/src/index.ts",
+    "packages/agent/src/ingest.ts",
+    "packages/agent/src/pipeline.test.ts",
+    "packages/agent/src/pipeline.ts",
+    "packages/agent/src/policy.test.ts",
+    "packages/agent/src/webhooks.ts",
+    "packages/db/src/schema/index.ts",
+    "packages/db/src/schema/webhooks.ts"
+  ],
+  "agent": "OpenCode",
+  "model": "deepseek-v4.1-flash",
+  "turn_id": "54a6e9b13e70",
+  "checkpoint_transcript_start": 491,
+  "transcript_lines_at_start": 491,
+  "compact_transcript_start": 491,
+  "token_usage": {
+    "input_tokens": 31762,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 17913472,
+    "output_tokens": 15876,
+    "api_call_count": 52
+  },
+  "session_metrics": {
+    "turn_count": 27
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-10T16:45:05.498871Z",
+    "agent_lines": 808,
+    "agent_removed": 9,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 808,
+    "total_lines_changed": 817,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4KB77GM4GTBT1AYM8Z27TR9",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 7,
+  "files_touched": [
+    "apps/server/src/index.ts",
+    "apps/server/src/routes/webhookEndpoints.ts",
+    "apps/server/src/webhookDispatcher.ts",
+    "apps/web/src/app/settings/api-keys/page.tsx",
+    "apps/web/src/components/api-key-manager.tsx",
+    "apps/web/src/components/webhook-endpoints-manager.tsx",
+    "apps/web/src/lib/api-client.ts",
+    "apps/web/src/lib/api.ts",
+    "apps/web/src/lib/types.ts",
+    "packages/agent/src/approvals.ts",
+    "packages/agent/src/context.ts",
+    "packages/agent/src/index.ts",
+    "packages/agent/src/ingest.ts",
+    "packages/agent/src/pipeline.test.ts",
+    "packages/agent/src/pipeline.ts",
+    "packages/agent/src/policy.test.ts",
+    "packages/agent/src/webhooks.ts",
+    "packages/db/src/schema/index.ts",
+    "packages/db/src/schema/webhooks.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 31762,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 17913472,
+    "output_tokens": 15876,
+    "api_call_count": 52
+  }
+}
