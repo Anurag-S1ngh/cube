@@ -1,0 +1,25 @@
+You are running an end-to-end smoke test of a Bun/Express API. Do NOT modify any files in the repo except creating throwaway files under /tmp. Do NOT run git commit/push.
+
+Repo root (contains spaces — always quote paths): "/Users/adityasingh/Downloads/FullStack Web Development/hackathon/cube"
+
+Environment facts:
+- Postgres is running at: REDACTED (the `psql` binary is on PATH)
+- Demo login: email `demo@cube.test`, REDACTED `REDACTED`
+- The server is a Bun app at apps/server, started with `bun run --hot src/index.ts`, listening on http://localhost:3000
+- The server auto-loads env from apps/server/.env via varlock
+
+Steps (run all workdirs relative to the repo root):
+1. Start the server in the background: run `bun run --hot src/index.ts` with workdir `apps/server`, redirecting output to /tmp/agent-srv.log. Poll `curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/` until it returns 200 (max ~30s).
+2. Check unauthenticated access is blocked: `curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/investigations` → expect 401.
+3. Log in and save the cookie jar:
+   curl -s -c /tmp/agent-cj.txt -o /dev/null -w '%{http_code}' -X POST http://localhost:3000/auth/login -H 'content-type: application/json' -d '{"email":"demo@cube.test","REDACTED":"REDACTED"}'
+   Expect 200. Also test a wrong REDACTED returns 401.
+4. With the cookie: `curl -s -b /tmp/agent-cj.txt http://localhost:3000/investigations/summary`
+   Verify the JSON now contains a key `emailsQueued` whose value is a number. Report the full JSON.
+5. Pick an investigation id: run `psql REDACTED -tc "SELECT id FROM investigations LIMIT 1;"` and strip whitespace.
+6. With the cookie: `curl -s -b /tmp/agent-cj.txt -o /dev/null -w '%{http_code}' http://localhost:3000/investigations/<id>` → expect 200.
+7. With the cookie: `curl -s -b /tmp/agent-cj.txt -o /dev/null -w '%{http_code}' -X POST http://localhost:3000/investigations/<id>/approve` → expect 409 (no queued email) or 200. Report the body too.
+8. With an invalid id: `curl -s -b /tmp/agent-cj.txt -o /dev/null -w '%{http_code}' http://localhost:3000/investigations/not-a-uuid` → expect 404.
+9. Kill the server process you started (use pkill -f "src/index.ts"). Confirm it is stopped.
+
+Report a concise pass/fail per step with the exact HTTP codes and the summary JSON. Include any error output from /tmp/agent-srv.log if something fails.
