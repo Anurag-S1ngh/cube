@@ -11,11 +11,7 @@ import { notFound, redirect } from "next/navigation";
 import { ReviewEmailActions } from "@/components/review-email-actions";
 import { StatusBadge } from "@/components/status-badge";
 import { AuthError, getInvestigation } from "@/lib/api";
-import {
-	cfoScenarioUrl,
-	entireCheckpointUrl,
-	neatlogsTraceUrl,
-} from "@/lib/links";
+import { cfoScenarioUrl, neatlogsTraceUrl } from "@/lib/links";
 import { formatMoney, type InvestigationDetail } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -269,7 +265,7 @@ function Detail({ data }: { data: InvestigationDetail }) {
 
 					<Section
 						title="Systems of record"
-						description="Each investigation links to the three tools behind it."
+						description="Each investigation links to the tools behind it."
 					>
 						<RecordLink
 							label="neatlogs trace"
@@ -280,11 +276,6 @@ function Detail({ data }: { data: InvestigationDetail }) {
 							label="cfo.ai scenario"
 							value={investigation.cfoScenarioRef}
 							href={cfoScenarioUrl(investigation.cfoScenarioRef)}
-						/>
-						<RecordLink
-							label="entire.io checkpoint"
-							value={investigation.entireCheckpointId}
-							href={entireCheckpointUrl(investigation.entireCheckpointId)}
 						/>
 					</Section>
 

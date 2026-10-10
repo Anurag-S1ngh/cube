@@ -46,7 +46,6 @@ export type InvestigationDetail = {
 		cfoScenarioRef: string | null;
 		cfoEvidence: Record<string, unknown> | null;
 		neatlogsTraceId: string | null;
-		entireCheckpointId: string | null;
 		error: string | null;
 		createdAt: string;
 	};

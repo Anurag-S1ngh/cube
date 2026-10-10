@@ -44,9 +44,8 @@ export const investigations = pgTable(
 		revenueAtRiskCents: integer("revenue_at_risk_cents"),
 		cfoScenarioRef: text("cfo_scenario_ref"),
 		cfoEvidence: jsonb("cfo_evidence").$type<Record<string, unknown>>(),
-		// Observability + provenance links (the three systems of record).
+		// Observability + provenance links (the systems of record).
 		neatlogsTraceId: text("neatlogs_trace_id"),
-		entireCheckpointId: text("entire_checkpoint_id"),
 		error: text("error"),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()

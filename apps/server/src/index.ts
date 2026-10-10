@@ -1,5 +1,6 @@
 import { initObservability } from "@cube/agent";
 import cors from "cors";
+import { sql } from "drizzle-orm";
 import express from "express";
 
 import { pruneExpiredSessions } from "./auth/sessions";
@@ -38,6 +39,23 @@ app.use(
 
 app.get("/", (_req, res) => {
 	res.status(200).send("OK");
+});
+
+app.get("/health", async (_req, res) => {
+	try {
+		await db.execute(sql`select 1`);
+		res.json({
+			status: "ok",
+			db: "up",
+			uptimeSeconds: Math.round(process.uptime()),
+		});
+	} catch (error) {
+		res.status(503).json({
+			status: "degraded",
+			db: "down",
+			error: error instanceof Error ? error.message : String(error),
+		});
+	}
 });
 
 app.use("/auth", authRouter);
