@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { SESSION_COOKIE } from "@/lib/session";
 
-const PUBLIC_PATHS = ["/login"];
+const PUBLIC_PATHS = ["/login", "/register"];
 
 function isPublic(pathname: string): boolean {
 	return PUBLIC_PATHS.some(
@@ -27,7 +27,7 @@ export function proxy(request: NextRequest) {
 		return NextResponse.redirect(url);
 	}
 
-	if (hasSession && pathname === "/login") {
+	if (hasSession && PUBLIC_PATHS.includes(pathname)) {
 		const url = request.nextUrl.clone();
 		url.pathname = "/";
 		url.search = "";

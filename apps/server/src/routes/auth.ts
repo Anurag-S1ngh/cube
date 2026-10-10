@@ -10,6 +10,7 @@ import {
 import { getAuth, requireSession } from "../auth/middleware";
 import { hashPassword, verifyPassword } from "../auth/password";
 import { checkRateLimit, resetRateLimit } from "../auth/rateLimit";
+import { RegisterError, register } from "../auth/register";
 import { createSession, revokeSession } from "../auth/sessions";
 import { ENV } from "../env.server";
 import { db } from "../services";
@@ -81,6 +82,51 @@ authRouter.post("/login", async (req, res) => {
 	res.json({
 		user: { id: user.id, username: user.username, email: user.email },
 		expiresAt: expiresAt.toISOString(),
+	});
+});
+
+authRouter.post("/register", async (req, res) => {
+	const body = (req.body ?? {}) as Record<string, unknown>;
+	const email = stringField(body.email) ?? "";
+	const password = typeof body.password === "string" ? body.password : "";
+	const name = stringField(body.name);
+	const projectName = stringField(body.projectName);
+
+	const ip = req.ip ?? "unknown";
+	const limit = checkRateLimit(`register:${ip}`, {
+		max: ENV.AUTH_LOGIN_MAX_ATTEMPTS,
+		windowMs: ENV.AUTH_LOGIN_WINDOW_MINUTES * 60_000,
+	});
+	if (!limit.allowed) {
+		res.setHeader("Retry-After", Math.ceil(limit.retryAfterMs / 1000));
+		res.status(429).json({ error: "too many attempts, try again later" });
+		return;
+	}
+
+	let created: Awaited<ReturnType<typeof register>>;
+	try {
+		created = await register(db, { email, password, name, projectName });
+	} catch (error) {
+		if (error instanceof RegisterError) {
+			res.status(error.status).json({ error: error.message });
+			return;
+		}
+		throw error;
+	}
+
+	const { token, expiresAt } = await createSession(db, {
+		userId: created.user.id,
+		ttlDays: ENV.SESSION_TTL_DAYS,
+		userAgent: req.header("user-agent") ?? null,
+		ip,
+	});
+	setSessionCookie(res, token, expiresAt);
+
+	res.status(201).json({
+		user: created.user,
+		project: created.project,
+		apiKey: created.apiKey,
+		webhookSecret: created.webhookSecret,
 	});
 });
 

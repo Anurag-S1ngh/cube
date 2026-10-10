@@ -56,6 +56,18 @@ export function login(
 	});
 }
 
+export function register(input: {
+	email: string;
+	password: string;
+	name?: string;
+	projectName?: string;
+}): Promise<{ user: SessionUser }> {
+	return request("/auth/register", {
+		method: "POST",
+		body: JSON.stringify(input),
+	});
+}
+
 export function logout(): Promise<void> {
 	return request("/auth/logout", { method: "POST" });
 }
