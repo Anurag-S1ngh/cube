@@ -8,11 +8,15 @@
     "compile": "bun build --compile --no-compile-autoload-dotenv --minify --sourcemap --bytecode ./src/index.ts --outfile server",
     "dev": "bun run --hot src/index.ts",
     "start": "bun run dist/index.mjs",
+    "seed": "bun run src/scripts/seed-demo.ts",
+    "simulate": "bun run src/scripts/simulate.ts",
     "env:generate": "varlock codegen"
   },
   "dependencies": {
+    "@cube/agent": "workspace:*",
     "@cube/db": "workspace:*",
     "cors": "^2.8.6",
+    "drizzle-orm": "1.0.0-rc.4",
     "express": "^5.2.1",
     "varlock": "catalog:",
     "zod": "catalog:"
