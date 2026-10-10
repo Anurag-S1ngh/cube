@@ -20,6 +20,7 @@ function context(
 		},
 		customer: {
 			id: "cus_test",
+			projectId: "proj_test",
 			name: "Acme Corp",
 			email: "billing@acme.test",
 			externalId: "cus_acme",

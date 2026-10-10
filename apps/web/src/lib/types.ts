@@ -43,6 +43,18 @@ export type ApiKey = {
 	createdAt: string;
 };
 
+export type WebhookEndpoint = {
+	id: string;
+	projectId: string;
+	url: string;
+	secret: string;
+	description: string | null;
+	events: string[];
+	active: boolean;
+	createdAt: string;
+	disabledAt: string | null;
+};
+
 export type Summary = {
 	total: number;
 	byStatus: Record<string, number>;

@@ -24,6 +24,7 @@ import { evaluateOutreachPolicy } from "./policy";
 import { createMitigationScenario, getFinancialContext } from "./tools/cfo";
 import { renderEmail, sendEmail } from "./tools/email";
 import type { AgentConfig } from "./types";
+import { emitWebhookEvent } from "./webhooks";
 
 async function setStatus(
 	db: Database,
@@ -128,6 +129,16 @@ export async function runInvestigation(
 					evidence: classification.evidence,
 				});
 				await setStatus(db, investigationId, "classified");
+				await emitWebhookEvent(db, {
+					projectId: ctx.customer.projectId,
+					event: "investigation.classified",
+					investigationId,
+					data: {
+						code: classification.code,
+						severity: classification.severity,
+						confidence: classification.confidence,
+					},
+				});
 
 				const baseRecommendation = await withSpan(
 					"recommend.mitigation",
@@ -265,12 +276,24 @@ async function act(
 				reason: classification.label,
 			});
 			await setStatus(db, investigationId, "escalated");
+			await emitWebhookEvent(db, {
+				projectId: ctx.customer.projectId,
+				event: "investigation.escalated",
+				investigationId,
+				data: { reason: classification.label },
+			});
 			return;
 		}
 		await recordAudit(db, investigationId, "actioned", {
 			actions: recommendation.actions.map((a) => a.type),
 		});
 		await setStatus(db, investigationId, "actioned");
+		await emitWebhookEvent(db, {
+			projectId: ctx.customer.projectId,
+			event: "investigation.actioned",
+			investigationId,
+			data: { actions: recommendation.actions.map((a) => a.type) },
+		});
 		return;
 	}
 
@@ -316,6 +339,12 @@ async function act(
 			checks: policy.checks,
 		});
 		await setStatus(db, investigationId, "recommended");
+		await emitWebhookEvent(db, {
+			projectId: ctx.customer.projectId,
+			event: "email.blocked",
+			investigationId,
+			data: { reason: policy.reason ?? "blocked by policy" },
+		});
 		return;
 	}
 
@@ -340,6 +369,12 @@ async function act(
 			checks: policy.checks,
 		});
 		await setStatus(db, investigationId, "recommended");
+		await emitWebhookEvent(db, {
+			projectId: ctx.customer.projectId,
+			event: "email.queued",
+			investigationId,
+			data: { templateId: emailAction.templateId },
+		});
 		return;
 	}
 
@@ -373,6 +408,12 @@ async function act(
 		await recordAudit(db, investigationId, "email_failed", { reason });
 		logStep("email_failed", { reason });
 		await setStatus(db, investigationId, "recommended");
+		await emitWebhookEvent(db, {
+			projectId: ctx.customer.projectId,
+			event: "email.failed",
+			investigationId,
+			data: { reason },
+		});
 		return;
 	}
 
@@ -405,4 +446,20 @@ async function act(
 		provider: send.provider,
 	});
 	await setStatus(db, investigationId, "actioned");
+	await emitWebhookEvent(db, {
+		projectId: ctx.customer.projectId,
+		event: "email.sent",
+		investigationId,
+		data: {
+			templateId: emailAction.templateId,
+			provider: send.provider,
+			providerMessageId: send.providerMessageId,
+		},
+	});
+	await emitWebhookEvent(db, {
+		projectId: ctx.customer.projectId,
+		event: "investigation.actioned",
+		investigationId,
+		data: { actions: recommendation.actions.map((a) => a.type) },
+	});
 }

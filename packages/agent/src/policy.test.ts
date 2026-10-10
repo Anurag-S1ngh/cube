@@ -37,6 +37,7 @@ function ctx(
 		},
 		customer: {
 			id: "cus",
+			projectId: "proj_test",
 			name: "Acme",
 			email: "billing@acme.test",
 			externalId: "cus_acme",
@@ -84,7 +85,15 @@ describe("evaluateOutreachPolicy", () => {
 		const decision = await evaluateOutreachPolicy(
 			fakeDb(0),
 			config,
-			ctx({ customer: { id: "c", name: "X", email: null, externalId: "e" } }),
+			ctx({
+				customer: {
+					id: "c",
+					projectId: "p",
+					name: "X",
+					email: null,
+					externalId: "e",
+				},
+			}),
 			classification("soft"),
 			daytime,
 		);

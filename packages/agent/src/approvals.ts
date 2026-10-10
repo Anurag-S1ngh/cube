@@ -1,10 +1,17 @@
 import type { Database } from "@cube/db";
-import { approvals, auditLog, emailActions, investigations } from "@cube/db";
+import {
+	approvals,
+	auditLog,
+	customers,
+	emailActions,
+	investigations,
+} from "@cube/db";
 import { and, desc, eq } from "drizzle-orm";
 
 import { logStep, withSpan } from "./observability";
 import { sendEmail } from "./tools/email";
 import type { AgentConfig } from "./types";
+import { emitWebhookEvent } from "./webhooks";
 
 const uuidPattern =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -56,6 +63,14 @@ export async function decideEmail(
 		throw new ApprovalError("no email is awaiting approval");
 	}
 
+	const [scope] = await db
+		.select({ projectId: customers.projectId })
+		.from(investigations)
+		.innerJoin(customers, eq(customers.id, investigations.customerId))
+		.where(eq(investigations.id, investigationId))
+		.limit(1);
+	const projectId = scope?.projectId;
+
 	const actor = input.actor?.trim() || "operator";
 
 	if (decision === "rejected") {
@@ -77,6 +92,14 @@ export async function decideEmail(
 			templateId: pending.templateId,
 		});
 		logStep("email_rejected", { actor, reason });
+		if (projectId) {
+			await emitWebhookEvent(db, {
+				projectId,
+				event: "email.blocked",
+				investigationId,
+				data: { reason, templateId: pending.templateId },
+			});
+		}
 		return {
 			investigationId,
 			decision: "rejected",
@@ -140,6 +163,24 @@ export async function decideEmail(
 		templateId: pending.templateId,
 		provider: send.provider,
 	});
+	if (projectId) {
+		await emitWebhookEvent(db, {
+			projectId,
+			event: "email.sent",
+			investigationId,
+			data: {
+				templateId: pending.templateId,
+				provider: send.provider,
+				providerMessageId: send.providerMessageId,
+			},
+		});
+		await emitWebhookEvent(db, {
+			projectId,
+			event: "investigation.actioned",
+			investigationId,
+			data: { actions: ["email_reminder"] },
+		});
+	}
 
 	return {
 		investigationId,

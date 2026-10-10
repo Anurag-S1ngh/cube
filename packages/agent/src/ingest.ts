@@ -8,6 +8,7 @@ import {
 import { and, eq } from "drizzle-orm";
 
 import type { PaymentFailurePayload } from "./types";
+import { emitWebhookEvent } from "./webhooks";
 
 export type IngestResult = {
 	eventId: string;
@@ -107,6 +108,19 @@ export async function ingestFailedPayment(
 	if (!investigation) {
 		throw new Error("Failed to insert investigation");
 	}
+
+	await emitWebhookEvent(db, {
+		projectId: customer.projectId,
+		event: "investigation.created",
+		investigationId: investigation.id,
+		data: {
+			customerId,
+			amountCents: payload.data.amountCents,
+			currency: payload.data.currency,
+			declineCode: payload.data.declineCode,
+			invoiceNumber: payload.data.invoiceNumber,
+		},
+	});
 
 	return {
 		eventId: event.id,

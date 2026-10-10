@@ -13,9 +13,11 @@ import { eventsRouter } from "./routes/events";
 import { investigationsRouter } from "./routes/investigations";
 import { mockRouter } from "./routes/mock";
 import { projectsRouter } from "./routes/projects";
+import { webhookEndpointsRouter } from "./routes/webhookEndpoints";
 import { webhooksRouter } from "./routes/webhooks";
 import { db } from "./services";
 import type { RawBodyRequest } from "./types";
+import { startWebhookDispatcher } from "./webhookDispatcher";
 
 await initObservability(agentConfig);
 
@@ -63,6 +65,7 @@ app.use("/auth", authRouter);
 app.use("/projects", projectsRouter);
 app.use("/api-keys", apiKeysRouter);
 app.use("/events", eventsRouter);
+app.use("/webhook-endpoints", webhookEndpointsRouter);
 app.use("/webhooks", webhooksRouter);
 app.use("/investigations", investigationsRouter);
 app.use("/mock", mockRouter);
@@ -98,4 +101,5 @@ app.listen(3000, () => {
 		.catch((error) => {
 			console.error("[queue] recovery failed", error);
 		});
+	startWebhookDispatcher();
 });

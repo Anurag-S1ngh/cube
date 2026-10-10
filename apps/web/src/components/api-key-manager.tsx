@@ -214,7 +214,7 @@ export function ApiKeyManager({
 
 			<section className="space-y-3">
 				<div>
-					<h2 className="font-semibold text-base">Webhook endpoints</h2>
+					<h2 className="font-semibold text-base">Inbound webhooks</h2>
 					<p className="text-muted-foreground text-sm">
 						Point your payment provider at the per-project URL and sign the raw
 						body with the project&apos;s HMAC secret.

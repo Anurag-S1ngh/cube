@@ -103,3 +103,18 @@ export function rotateWebhookSecret(
 ): Promise<{ webhookUrl: string; webhookSecret: string }> {
 	return request(`/projects/${projectId}/webhook-secret`, { method: "POST" });
 }
+
+export function createWebhookEndpoint(
+	projectId: string,
+	url: string,
+	description?: string,
+): Promise<{ endpoint: { id: string; url: string; secret: string } }> {
+	return request("/webhook-endpoints", {
+		method: "POST",
+		body: JSON.stringify({ projectId, url, description }),
+	});
+}
+
+export function deleteWebhookEndpoint(id: string): Promise<void> {
+	return request(`/webhook-endpoints/${id}`, { method: "DELETE" });
+}

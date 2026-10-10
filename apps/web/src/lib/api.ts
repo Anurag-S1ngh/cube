@@ -7,6 +7,7 @@ import type {
 	InvestigationPage,
 	Project,
 	Summary,
+	WebhookEndpoint,
 } from "@/lib/types";
 
 export type {
@@ -77,4 +78,11 @@ export async function getProjects(): Promise<Project[]> {
 export async function getApiKeys(): Promise<ApiKey[]> {
 	const data = await getJson<{ apiKeys: ApiKey[] }>("/api-keys");
 	return data.apiKeys;
+}
+
+export async function getWebhookEndpoints(): Promise<WebhookEndpoint[]> {
+	const data = await getJson<{ endpoints: WebhookEndpoint[] }>(
+		"/webhook-endpoints",
+	);
+	return data.endpoints;
 }

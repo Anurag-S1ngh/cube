@@ -22,6 +22,7 @@ export type InvestigationContext = {
 	};
 	customer: {
 		id: string;
+		projectId: string;
 		name: string | null;
 		email: string | null;
 		externalId: string;
@@ -126,6 +127,7 @@ export async function gatherContext(
 		},
 		customer: {
 			id: customer.id,
+			projectId: customer.projectId,
 			name: customer.name,
 			email: customer.email,
 			externalId: customer.externalId,
