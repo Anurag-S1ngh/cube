@@ -25,12 +25,13 @@ export type ScenarioResult = {
 
 let cachedClient: McpClient | null = null;
 let cachedKey = "";
+let cachedOrg: { id: string; name?: string } | null = null;
 
 function client(config: AgentConfig): McpClient | null {
 	const oauth = config.cfo.oauth;
 	if (!config.cfo.token && !oauth) return null;
 
-	const key = `${config.cfo.mcpUrl}::${config.cfo.orgId ?? ""}::${
+	const key = `${config.cfo.mcpUrl}::${
 		config.cfo.token ? "static" : (oauth?.credentialsPath ?? "")
 	}`;
 	if (!cachedClient || cachedKey !== key) {
@@ -45,7 +46,6 @@ function client(config: AgentConfig): McpClient | null {
 		cachedClient = new McpClient({
 			url: config.cfo.mcpUrl,
 			token: config.cfo.token,
-			orgId: config.cfo.orgId,
 			getToken: oauthConfig ? () => getAccessToken(oauthConfig) : undefined,
 		});
 		cachedKey = key;
@@ -53,7 +53,29 @@ function client(config: AgentConfig): McpClient | null {
 	return cachedClient;
 }
 
-function pickCents(value: unknown): number | null {
+/** Resolve the workspace id (cfo.ai tools take `org_id` as an argument). */
+async function resolveOrg(
+	mcp: McpClient,
+	config: AgentConfig,
+): Promise<{ id: string; name?: string } | null> {
+	if (config.cfo.orgId) return { id: config.cfo.orgId };
+	if (cachedOrg) return cachedOrg;
+	try {
+		const result = (await mcp.callTool("list_orgs", {})) as {
+			orgs?: { org_id?: string; name?: string }[];
+		};
+		const first = result?.orgs?.[0];
+		if (first?.org_id) {
+			cachedOrg = { id: first.org_id, name: first.name };
+			return cachedOrg;
+		}
+	} catch {
+		// fall through
+	}
+	return null;
+}
+
+function toCents(value: unknown): number | null {
 	if (typeof value === "number" && Number.isFinite(value)) {
 		return Math.round(value * 100);
 	}
@@ -64,16 +86,39 @@ function pickCents(value: unknown): number | null {
 	return null;
 }
 
-/**
- * Read the customer's financial position from cfo.ai's model. When cfo.ai is
- * not configured (or unreachable) fall back to the ledger in Postgres so the
- * pipeline always has deterministic numbers to work with.
- */
-export async function getFinancialContext(
+/** Best-effort search of a cfo.ai response for a figure matching a key. */
+function deepFindCents(
+	node: unknown,
+	pattern: RegExp,
+	depth = 0,
+): number | null {
+	if (depth > 6 || node == null) return null;
+	if (Array.isArray(node)) {
+		for (const item of node) {
+			const found = deepFindCents(item, pattern, depth + 1);
+			if (found != null) return found;
+		}
+		return null;
+	}
+	if (typeof node === "object") {
+		for (const [key, value] of Object.entries(
+			node as Record<string, unknown>,
+		)) {
+			if (pattern.test(key)) {
+				const cents = toCents(value);
+				if (cents != null) return cents;
+			}
+			const found = deepFindCents(value, pattern, depth + 1);
+			if (found != null) return found;
+		}
+	}
+	return null;
+}
+
+async function ledgerOutstandingCents(
 	db: Database,
-	config: AgentConfig,
 	ctx: InvestigationContext,
-): Promise<FinancialContext> {
+): Promise<number> {
 	const [ledger] = await db
 		.select({ total: sum(invoices.totalAmount) })
 		.from(invoices)
@@ -83,45 +128,72 @@ export async function getFinancialContext(
 				eq(invoices.status, "pending"),
 			),
 		);
+	return Math.round(Number(ledger?.total ?? 0) * 100);
+}
 
-	const outstandingCents = Math.round(Number(ledger?.total ?? 0) * 100);
+/**
+ * Read the customer's financial position from cfo.ai's model. When cfo.ai is
+ * not configured, unreachable, or its model has no matching figures, fall back
+ * to the Postgres ledger so the pipeline always has deterministic numbers.
+ */
+export async function getFinancialContext(
+	db: Database,
+	config: AgentConfig,
+	ctx: InvestigationContext,
+): Promise<FinancialContext> {
+	const ledgerCents = await ledgerOutstandingCents(db, ctx);
 
 	const mcp = client(config);
 	if (mcp) {
 		try {
+			const org = await resolveOrg(mcp, config);
 			const result = await mcp.callTool("inspect_table_blocks", {
-				query: `outstanding balance accounts receivable ${ctx.customer.name ?? ctx.customer.externalId}`,
+				list: {},
+				...(org ? { org_id: org.id } : {}),
 			});
-			const record =
-				result && typeof result === "object"
-					? (result as Record<string, unknown>)
-					: {};
-			const outstanding =
-				pickCents(record.outstanding_balance) ??
-				pickCents(record.outstandingBalanceCents) ??
-				outstandingCents;
-			const atRisk =
-				pickCents(record.revenue_at_risk) ??
-				pickCents(record.revenueAtRiskCents) ??
-				outstanding;
+
+			const outstanding = deepFindCents(
+				result,
+				/outstanding|balance|receivable/i,
+			);
+			const atRisk = deepFindCents(result, /at.?risk|risk/i);
+			const hasModelFigures = outstanding != null || atRisk != null;
+			const blockCount = (result as { block_count?: number })?.block_count;
+
+			if (hasModelFigures) {
+				return {
+					outstandingBalanceCents: outstanding ?? ledgerCents,
+					revenueAtRiskCents: atRisk ?? outstanding ?? ledgerCents,
+					source: "cfo.ai",
+					evidence: {
+						provider: "cfo.ai",
+						org: org?.name ?? org?.id ?? null,
+						basis: "cfo.ai-model",
+						blockCount: blockCount ?? null,
+					},
+				};
+			}
+
 			return {
-				outstandingBalanceCents: outstanding,
-				revenueAtRiskCents: atRisk,
-				source: "cfo.ai",
-				evidence: {
-					provider: "cfo.ai",
-					customer: ctx.customer.externalId,
-					raw: record,
-				},
-			};
-		} catch (error) {
-			// Fall through to the ledger fallback but keep the reason for audit.
-			return {
-				outstandingBalanceCents: outstandingCents,
-				revenueAtRiskCents: outstandingCents,
+				outstandingBalanceCents: ledgerCents,
+				revenueAtRiskCents: ledgerCents,
 				source: "local-ledger",
 				evidence: {
 					provider: "local-ledger",
+					cfoConnected: true,
+					org: org?.name ?? org?.id ?? null,
+					note: "cfo.ai model has no matching figures; using the ledger",
+					blockCount: blockCount ?? null,
+				},
+			};
+		} catch (error) {
+			return {
+				outstandingBalanceCents: ledgerCents,
+				revenueAtRiskCents: ledgerCents,
+				source: "local-ledger",
+				evidence: {
+					provider: "local-ledger",
+					cfoConnected: false,
 					reason: error instanceof Error ? error.message : String(error),
 				},
 			};
@@ -129,11 +201,12 @@ export async function getFinancialContext(
 	}
 
 	return {
-		outstandingBalanceCents: outstandingCents,
-		revenueAtRiskCents: outstandingCents,
+		outstandingBalanceCents: ledgerCents,
+		revenueAtRiskCents: ledgerCents,
 		source: "local-ledger",
 		evidence: {
 			provider: "local-ledger",
+			cfoConnected: false,
 			pendingInvoices: ctx.paymentHistory.unpaid,
 			overdueDays: ctx.overdueDays,
 		},
@@ -141,9 +214,8 @@ export async function getFinancialContext(
 }
 
 /**
- * Ask cfo.ai to model the mitigation scenario (deterministic finance math),
- * falling back to a local projection when cfo.ai is unavailable. Every write in
- * cfo.ai is changelogged and reversible.
+ * Create a recovery scenario in cfo.ai (deterministic, changelogged and
+ * reversible), falling back to a local projection when cfo.ai is unavailable.
  */
 export async function createMitigationScenario(
 	config: AgentConfig,
@@ -157,29 +229,30 @@ export async function createMitigationScenario(
 	const mcp = client(config);
 	if (mcp) {
 		try {
-			const result = await mcp.callTool("edit_scenarios", {
-				scenario: `Recovery: ${input.customer} (${input.kind})`,
-				description: `Payment-failure recovery scenario for investigation ${input.investigationId}`,
-				projected_inflow_cents: input.amountCents,
-			});
-			const record =
-				result && typeof result === "object"
-					? (result as Record<string, unknown>)
-					: {};
-			const ref =
-				(typeof record.ref === "string" && record.ref) ||
-				(typeof record.id === "string" && record.id) ||
-				`cfo:${input.investigationId}:${input.kind}`;
-			return {
-				ref,
-				kind: input.kind,
-				projectedInflowCents:
-					pickCents(record.projected_inflow) ?? input.amountCents,
-				assumptions: { source: "cfo.ai" },
-				source: "cfo.ai",
-			};
+			const org = await resolveOrg(mcp, config);
+			const suffix = input.investigationId.slice(0, 8);
+			const name = `Recovery: ${input.customer} (${input.kind}) · ${suffix}`;
+			const result = (await mcp.callTool("edit_scenarios", {
+				create: { name },
+				...(org ? { org_id: org.id } : {}),
+			})) as { scenario?: { ref?: string } };
+
+			const ref = result?.scenario?.ref;
+			if (typeof ref === "string" && ref.length > 0) {
+				return {
+					ref,
+					kind: input.kind,
+					projectedInflowCents: input.amountCents,
+					assumptions: {
+						source: "cfo.ai",
+						org: org?.name ?? org?.id ?? null,
+						note: "Assumes the mitigation recovers the full outstanding amount.",
+					},
+					source: "cfo.ai",
+				};
+			}
 		} catch {
-			// fall through to local model
+			// fall through to the local model
 		}
 	}
 

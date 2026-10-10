@@ -22,7 +22,6 @@ export type McpClientOptions = {
 	token?: string;
 	/** Resolve a bearer token per request (e.g. OAuth with refresh). */
 	getToken?: () => Promise<string | null>;
-	orgId?: string;
 	timeoutMs?: number;
 };
 
@@ -48,7 +47,6 @@ export class McpClient {
 	private readonly url: string;
 	private readonly token?: string;
 	private readonly getToken?: () => Promise<string | null>;
-	private readonly orgId?: string;
 	private readonly timeoutMs: number;
 	private sessionId?: string;
 	private nextId = 1;
@@ -58,7 +56,6 @@ export class McpClient {
 		this.url = options.url;
 		this.token = options.token;
 		this.getToken = options.getToken;
-		this.orgId = options.orgId;
 		this.timeoutMs = options.timeoutMs ?? 15_000;
 	}
 
@@ -147,17 +144,20 @@ export class McpClient {
 		args: Record<string, unknown>,
 	): Promise<unknown> {
 		await this.initialize();
-		const params: Record<string, unknown> = { name, arguments: args };
-		if (this.orgId) params._meta = { org_id: this.orgId };
-		const result = (await this.rpc("tools/call", params)) as {
+		const result = (await this.rpc("tools/call", {
+			name,
+			arguments: args,
+		})) as {
 			content?: { type: string; text?: string }[];
 			isError?: boolean;
 		} | null;
 
-		if (result?.isError) {
-			throw new Error(`MCP tool ${name} returned an error`);
-		}
 		const textPart = result?.content?.find((c) => c.type === "text")?.text;
+		if (result?.isError) {
+			throw new Error(
+				`MCP tool ${name} returned an error${textPart ? `: ${textPart.slice(0, 300)}` : ""}`,
+			);
+		}
 		if (!textPart) return result;
 		try {
 			return JSON.parse(textPart);
