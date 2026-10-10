@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4K1PK10V311W536H15D34GX",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/web/src/app/investigations/[id]/page.tsx",
+    "apps/web/src/app/layout.tsx",
+    "apps/web/src/app/login/page.tsx",
+    "apps/web/src/app/page.tsx",
+    "apps/web/src/components/investigations-table.tsx",
+    "apps/web/src/components/simulate-button.tsx",
+    "apps/web/src/lib/types.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 8550,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 83584,
+    "output_tokens": 1369,
+    "api_call_count": 9
+  }
+}
