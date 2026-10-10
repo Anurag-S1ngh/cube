@@ -1,0 +1,60 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4K5SW70QWWH26F24YPDWJPJ",
+  "session_id": "ses_eda4d7eb6ffeziFdwt0KpEH2bL",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-10T15:10:14.027046Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "README.md",
+    "apps/server/.env.schema",
+    "apps/server/src/auth/passwordReset.ts",
+    "apps/server/src/routes/auth.ts",
+    "apps/web/src/app/forgot-password/page.tsx",
+    "apps/web/src/app/login/page.tsx",
+    "apps/web/src/app/reset-password/page.tsx",
+    "apps/web/src/components/forgot-password-form.tsx",
+    "apps/web/src/components/reset-password-form.tsx",
+    "apps/web/src/lib/auth-client.ts",
+    "apps/web/src/proxy.ts",
+    "packages/db/src/schema/auth.ts"
+  ],
+  "agent": "OpenCode",
+  "model": "deepseek-v4.1-flash",
+  "turn_id": "eca1cbab3098",
+  "checkpoint_transcript_start": 411,
+  "transcript_lines_at_start": 411,
+  "compact_transcript_start": 411,
+  "token_usage": {
+    "input_tokens": 18221,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 7502336,
+    "output_tokens": 9222,
+    "api_call_count": 27
+  },
+  "session_metrics": {
+    "turn_count": 20
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-10T15:10:13.890277Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 0,
+    "total_lines_changed": 0,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}

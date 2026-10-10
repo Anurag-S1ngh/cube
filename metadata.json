@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4K5SW70QWWH26F24YPDWJPJ",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "README.md",
+    "apps/server/.env.schema",
+    "apps/server/src/auth/passwordReset.ts",
+    "apps/server/src/routes/auth.ts",
+    "apps/web/src/app/forgot-password/page.tsx",
+    "apps/web/src/app/login/page.tsx",
+    "apps/web/src/app/reset-password/page.tsx",
+    "apps/web/src/components/forgot-password-form.tsx",
+    "apps/web/src/components/reset-password-form.tsx",
+    "apps/web/src/lib/auth-client.ts",
+    "apps/web/src/proxy.ts",
+    "packages/db/src/schema/auth.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 18221,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 7502336,
+    "output_tokens": 9222,
+    "api_call_count": 27
+  }
+}
