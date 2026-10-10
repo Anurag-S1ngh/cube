@@ -1,0 +1,58 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4K06DK9VHE0G1CFR0CHSZM9",
+  "session_id": "ses_eda4d7eb6ffeziFdwt0KpEH2bL",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-10T13:31:51.509064Z",
+  "branch": "main",
+  "checkpoints_count": 11,
+  "save_step_count": 1,
+  "files_touched": [
+    "apps/server/.env.schema",
+    "apps/server/package.json",
+    "apps/server/src/auth/apiKeys.ts",
+    "apps/server/src/auth/auth.test.ts",
+    "apps/server/src/auth/cookies.ts",
+    "apps/server/src/auth/middleware.ts",
+    "apps/server/src/auth/password.ts",
+    "apps/server/src/auth/rateLimit.ts",
+    "apps/server/src/auth/sessions.ts",
+    "apps/server/src/index.ts",
+    "apps/server/src/mock/simulator.ts",
+    "apps/server/src/routes/apiKeys.ts",
+    "apps/server/src/routes/auth.ts",
+    "apps/server/src/routes/investigations.ts",
+    "apps/server/src/routes/mock.ts",
+    "apps/server/src/routes/projects.ts",
+    "apps/server/src/scripts/seed-demo.ts",
+    "packages/db/src/schema/auth.ts",
+    "packages/db/src/schema/billing.ts",
+    "packages/db/src/schema/index.ts"
+  ],
+  "agent": "OpenCode",
+  "model": "deepseek-v4.1-flash",
+  "turn_id": "0235c43ba846",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 169546,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 17826560,
+    "output_tokens": 48671,
+    "api_call_count": 208
+  },
+  "session_metrics": {
+    "turn_count": 11
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-10T13:31:51.416741Z",
+    "agent_lines": 996,
+    "agent_removed": 21,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 996,
+    "total_lines_changed": 1017,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
