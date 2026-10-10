@@ -2,6 +2,7 @@ export * from "./classify";
 export * from "./context";
 export * from "./format";
 export * from "./ingest";
+export * from "./llm";
 export * from "./mcp/client";
 export * from "./mitigate";
 export * from "./mock/provider";

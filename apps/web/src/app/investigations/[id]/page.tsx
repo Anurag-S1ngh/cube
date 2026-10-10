@@ -308,6 +308,12 @@ function Detail({ data }: { data: InvestigationDetail }) {
 									{data.runs[0].model ?? "deterministic"}
 								</span>
 							</div>
+							<div className="flex items-center justify-between">
+								<span className="text-muted-foreground">Tokens</span>
+								<span className="tabular-nums">
+									{data.runs[0].tokensIn} in / {data.runs[0].tokensOut} out
+								</span>
+							</div>
 						</Section>
 					) : null}
 				</div>

@@ -16,6 +16,7 @@ import { classify } from "./classify";
 import type { InvestigationContext } from "./context";
 import { gatherContext } from "./context";
 import { formatMoney } from "./format";
+import { enrichRationale } from "./llm";
 import type { RecommendationResult } from "./mitigate";
 import { recommend } from "./mitigate";
 import { logStep, withSpan, withWorkflow } from "./observability";
@@ -128,12 +129,36 @@ export async function runInvestigation(
 				});
 				await setStatus(db, investigationId, "classified");
 
-				const recommendation = await withSpan(
+				const baseRecommendation = await withSpan(
 					"recommend.mitigation",
 					"AGENT",
 					{ severity: classification.severity },
 					async () => recommend(ctx, classification),
 				);
+
+				const enriched = await withSpan(
+					"llm.rationale",
+					"LLM",
+					{ model: config.llm.model },
+					() =>
+						enrichRationale(config, {
+							customer: ctx.customer.name ?? ctx.customer.externalId,
+							declineCode: ctx.event.declineCode,
+							causeLabel: classification.label,
+							severity: classification.severity,
+							confidence: classification.confidence,
+							amountFormatted: formatMoney(
+								ctx.event.amountCents,
+								ctx.event.currency,
+							),
+							actions: baseRecommendation.actions.map((a) => a.type),
+							retryScheduleDays: baseRecommendation.retryScheduleDays,
+						}),
+				);
+
+				const recommendation = enriched
+					? { ...baseRecommendation, rationale: enriched.rationale }
+					: baseRecommendation;
 
 				await db
 					.delete(recommendations)
@@ -198,7 +223,9 @@ export async function runInvestigation(
 				await db.insert(agentRuns).values({
 					investigationId,
 					pipelineState: "completed",
-					model: config.llm.model,
+					model: enriched?.model ?? config.llm.model,
+					tokensIn: enriched?.tokensIn ?? 0,
+					tokensOut: enriched?.tokensOut ?? 0,
 					latencyMs: Date.now() - startedAt,
 					neatlogsTraceId: traceId,
 				});

@@ -98,6 +98,8 @@ export type InvestigationDetail = {
 		id: string;
 		latencyMs: number;
 		model: string | null;
+		tokensIn: number;
+		tokensOut: number;
 		neatlogsTraceId: string | null;
 	}[];
 };
