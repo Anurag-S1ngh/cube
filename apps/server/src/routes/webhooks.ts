@@ -4,6 +4,7 @@ import { ingestFailedPayment, verifySignature } from "@cube/agent";
 import { Router } from "express";
 
 import { agentConfig } from "../config";
+import { queue } from "../queue";
 import { db } from "../services";
 import type { RawBodyRequest } from "../types";
 
@@ -43,5 +44,8 @@ webhooksRouter.post("/stripe", async (req, res) => {
 	}
 
 	const result = await ingestFailedPayment(db, payload);
+	if (!result.duplicate) {
+		queue.enqueue(result.investigationId);
+	}
 	res.status(result.duplicate ? 200 : 202).json(result);
 });

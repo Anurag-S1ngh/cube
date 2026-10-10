@@ -6,6 +6,7 @@ import {
 import { customers, invoices } from "@cube/db";
 import { eq } from "drizzle-orm";
 
+import { queue } from "../queue";
 import { db } from "../services";
 
 /**
@@ -50,6 +51,9 @@ export async function simulateFailures(limit = 8) {
 		});
 
 		const result = await ingestFailedPayment(db, payload);
+		if (!result.duplicate) {
+			queue.enqueue(result.investigationId);
+		}
 		results.push({ ...result, payload });
 	}
 

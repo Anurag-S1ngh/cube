@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 
 import { ENV } from "./env.server";
+import { queue } from "./queue";
 import { investigationsRouter } from "./routes/investigations";
 import { mockRouter } from "./routes/mock";
 import { webhooksRouter } from "./routes/webhooks";
@@ -47,4 +48,14 @@ app.use(
 
 app.listen(3000, () => {
 	console.log("Server is running on http://localhost:3000");
+	void queue
+		.recover()
+		.then((count) => {
+			if (count > 0) {
+				console.log(`[queue] recovered ${count} pending investigations`);
+			}
+		})
+		.catch((error) => {
+			console.error("[queue] recovery failed", error);
+		});
 });
