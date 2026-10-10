@@ -9,6 +9,7 @@ import { ENV } from "./env.server";
 import { queue } from "./queue";
 import { apiKeysRouter } from "./routes/apiKeys";
 import { authRouter } from "./routes/auth";
+import { eventsRouter } from "./routes/events";
 import { investigationsRouter } from "./routes/investigations";
 import { mockRouter } from "./routes/mock";
 import { projectsRouter } from "./routes/projects";
@@ -61,6 +62,7 @@ app.get("/health", async (_req, res) => {
 app.use("/auth", authRouter);
 app.use("/projects", projectsRouter);
 app.use("/api-keys", apiKeysRouter);
+app.use("/events", eventsRouter);
 app.use("/webhooks", webhooksRouter);
 app.use("/investigations", investigationsRouter);
 app.use("/mock", mockRouter);

@@ -5,7 +5,7 @@ import {
 	failedPaymentEvents,
 	investigations,
 } from "@cube/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import type { PaymentFailurePayload } from "./types";
 
@@ -113,4 +113,140 @@ export async function ingestFailedPayment(
 		investigationId: investigation.id,
 		duplicate: false,
 	};
+}
+
+/** Normalized failed-payment input for a tenant integrating via the API/SDK. */
+export type ExternalFailureInput = {
+	customerExternalId: string;
+	customer?: { name?: string | null; email?: string | null };
+	invoiceNumber?: string | null;
+	amountCents: number;
+	currency?: string;
+	declineCode: string;
+	attemptNumber?: number;
+	provider?: string;
+	occurredAt?: string;
+	paymentMethod?: {
+		brand?: string;
+		last4?: string;
+		expMonth?: number;
+		expYear?: number;
+	};
+	/** When true (default) an unknown customer is created under the project. */
+	createCustomerIfMissing?: boolean;
+};
+
+/**
+ * Ingest a failed payment from a tenant's own backend. Identifies the customer
+ * by their external id (scoped to the project), optionally creating them, then
+ * reuses the standard webhook ingest path so behaviour stays identical.
+ * Idempotent on `idempotencyKey`.
+ */
+export async function ingestExternalFailedPayment(
+	db: Database,
+	projectId: string,
+	idempotencyKey: string,
+	input: ExternalFailureInput,
+): Promise<IngestResult> {
+	if (!idempotencyKey || idempotencyKey.length > 200) {
+		throw new IngestError("a valid idempotency key is required");
+	}
+	if (!input.customerExternalId) {
+		throw new IngestError("customerExternalId is required");
+	}
+	if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
+		throw new IngestError("amountCents must be a positive integer");
+	}
+	if (!declineCodes.includes(input.declineCode as DeclineCode)) {
+		throw new IngestError(`unknown declineCode: ${input.declineCode}`);
+	}
+
+	let [customer] = await db
+		.select({
+			id: customers.id,
+			name: customers.name,
+			email: customers.email,
+		})
+		.from(customers)
+		.where(
+			and(
+				eq(customers.projectId, projectId),
+				eq(customers.externalId, input.customerExternalId),
+			),
+		)
+		.limit(1);
+
+	if (!customer) {
+		if (input.createCustomerIfMissing === false) {
+			throw new IngestError(
+				`unknown customer for this project: ${input.customerExternalId}`,
+			);
+		}
+		const [created] = await db
+			.insert(customers)
+			.values({
+				projectId,
+				externalId: input.customerExternalId,
+				name: input.customer?.name ?? null,
+				email: input.customer?.email ?? null,
+			})
+			.onConflictDoNothing()
+			.returning({
+				id: customers.id,
+				name: customers.name,
+				email: customers.email,
+			});
+		if (created) {
+			customer = created;
+		} else {
+			[customer] = await db
+				.select({
+					id: customers.id,
+					name: customers.name,
+					email: customers.email,
+				})
+				.from(customers)
+				.where(
+					and(
+						eq(customers.projectId, projectId),
+						eq(customers.externalId, input.customerExternalId),
+					),
+				)
+				.limit(1);
+		}
+	}
+	if (!customer) {
+		throw new IngestError("failed to resolve customer");
+	}
+
+	const method = input.paymentMethod ?? {};
+	const payload: PaymentFailurePayload = {
+		id: `sdk:${projectId}:${idempotencyKey}`,
+		provider: input.provider ?? "sdk",
+		type: "invoice.payment_failed",
+		createdAt: input.occurredAt ?? new Date().toISOString(),
+		data: {
+			projectId,
+			customerExternalId: input.customerExternalId,
+			customerId: customer.id,
+			invoiceId: null,
+			invoiceNumber: input.invoiceNumber ?? null,
+			amountCents: input.amountCents,
+			currency: (input.currency ?? "usd").toLowerCase(),
+			declineCode: input.declineCode as DeclineCode,
+			attemptNumber: input.attemptNumber ?? 1,
+			paymentMethod: {
+				brand: method.brand ?? "unknown",
+				last4: method.last4 ?? "0000",
+				expMonth: method.expMonth ?? 1,
+				expYear: method.expYear ?? new Date().getFullYear() + 3,
+			},
+			customer: {
+				name: input.customer?.name ?? customer.name,
+				email: input.customer?.email ?? customer.email,
+			},
+		},
+	};
+
+	return ingestFailedPayment(db, payload, projectId);
 }
