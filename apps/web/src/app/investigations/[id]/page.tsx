@@ -13,12 +13,13 @@ import {
 	getInvestigation,
 	type InvestigationDetail,
 } from "@/lib/api";
+import {
+	cfoScenarioUrl,
+	entireCheckpointUrl,
+	neatlogsTraceUrl,
+} from "@/lib/links";
 
 export const dynamic = "force-dynamic";
-
-const NEATLOGS_URL = "https://app.neatlogs.com";
-const CFO_AI_URL = "https://app.cfo.ai";
-const ENTIRE_URL = "https://entire.io";
 
 function Section({
 	title,
@@ -47,22 +48,32 @@ function RecordLink({
 }: {
 	label: string;
 	value: string | null;
-	href: string;
+	href: string | null;
 }) {
 	return (
 		<div className="flex items-center justify-between gap-3 border-t py-2 first:border-t-0">
 			<span className="text-muted-foreground">{label}</span>
 			{value ? (
-				<a
-					href={href}
-					target="_blank"
-					rel="noreferrer"
-					className="truncate font-mono text-[11px] hover:underline"
-					title={value}
-				>
-					{value.slice(0, 28)}
-					{value.length > 28 ? "…" : ""}
-				</a>
+				href ? (
+					<a
+						href={href}
+						target="_blank"
+						rel="noreferrer"
+						className="truncate font-mono text-[11px] hover:underline"
+						title={value}
+					>
+						{value.slice(0, 28)}
+						{value.length > 28 ? "…" : ""}
+					</a>
+				) : (
+					<span
+						className="truncate font-mono text-[11px] text-muted-foreground"
+						title={value}
+					>
+						{value.slice(0, 28)}
+						{value.length > 28 ? "…" : ""}
+					</span>
+				)
 			) : (
 				<span className="text-[11px] text-muted-foreground">not recorded</span>
 			)}
@@ -266,17 +277,17 @@ function Detail({ data }: { data: InvestigationDetail }) {
 						<RecordLink
 							label="neatlogs trace"
 							value={investigation.neatlogsTraceId}
-							href={NEATLOGS_URL}
+							href={neatlogsTraceUrl(investigation.neatlogsTraceId)}
 						/>
 						<RecordLink
 							label="cfo.ai scenario"
 							value={investigation.cfoScenarioRef}
-							href={CFO_AI_URL}
+							href={cfoScenarioUrl(investigation.cfoScenarioRef)}
 						/>
 						<RecordLink
 							label="entire.io checkpoint"
 							value={investigation.entireCheckpointId}
-							href={ENTIRE_URL}
+							href={entireCheckpointUrl(investigation.entireCheckpointId)}
 						/>
 					</Section>
 
