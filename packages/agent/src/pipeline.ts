@@ -240,8 +240,9 @@ export async function runInvestigation(
 }
 
 /**
- * Execute the recommended actions. In full auto-send mode a guardrail still
- * runs before any customer email, and its outcome is recorded for audit.
+ * Execute the recommended actions. A guardrail always runs before any customer
+ * email and its outcome is recorded for audit. In auto-send mode a passing
+ * email is sent immediately; otherwise it is queued for human approval.
  */
 async function act(
 	db: Database,
@@ -312,6 +313,30 @@ async function act(
 		});
 		await recordAudit(db, investigationId, "email_blocked", {
 			reason: policy.reason,
+			checks: policy.checks,
+		});
+		await setStatus(db, investigationId, "recommended");
+		return;
+	}
+
+	// Manual mode: the guardrail passed, but a human must approve before the
+	// email goes out. Queue it and surface it for review.
+	if (!config.autoSend) {
+		await db.insert(emailActions).values({
+			investigationId,
+			templateId: emailAction.templateId ?? "reminder.generic_decline",
+			to,
+			subject: rendered.subject,
+			body: rendered.body,
+			status: "queued",
+			provider: config.email.provider,
+		});
+		logStep("email_pending_approval", {
+			templateId: emailAction.templateId,
+			checks: policy.checks,
+		});
+		await recordAudit(db, investigationId, "email_pending_approval", {
+			templateId: emailAction.templateId,
 			checks: policy.checks,
 		});
 		await setStatus(db, investigationId, "recommended");
