@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import { formatMoney, type InvestigationListItem } from "@/lib/api";
+import { formatMoney, type InvestigationListItem } from "@/lib/types";
 
 const statusStyles: Record<string, string> = {
 	received: "bg-muted text-muted-foreground",

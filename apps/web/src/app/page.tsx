@@ -1,15 +1,15 @@
 import { Card, CardHeader, CardTitle } from "@cube/ui/components/card";
+import { redirect } from "next/navigation";
 
 import { InvestigationsTable } from "@/components/investigations-table";
 import { LiveRefresh } from "@/components/live-refresh";
 import { SimulateButton } from "@/components/simulate-button";
+import { AuthError, getInvestigations, getSummary } from "@/lib/api";
 import {
 	formatMoney,
-	getInvestigations,
-	getSummary,
 	type InvestigationListItem,
 	type Summary,
-} from "@/lib/api";
+} from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +45,7 @@ export default async function Home() {
 	try {
 		[summary, rows] = await Promise.all([getSummary(), getInvestigations()]);
 	} catch (err) {
+		if (err instanceof AuthError) redirect("/login");
 		error = err instanceof Error ? err.message : "failed to load";
 	}
 

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { SERVER_URL } from "@/lib/api";
+import { SERVER_URL } from "@/lib/config";
 
 export function SimulateButton() {
 	const router = useRouter();
@@ -16,6 +16,7 @@ export function SimulateButton() {
 		try {
 			const res = await fetch(`${SERVER_URL}/mock/simulate?count=6`, {
 				method: "POST",
+				credentials: "include",
 			});
 			if (!res.ok) throw new Error(`simulate failed (${res.status})`);
 			const data = (await res.json()) as { created: number };

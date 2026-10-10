@@ -6,18 +6,15 @@ import {
 	CardTitle,
 } from "@cube/ui/components/card";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
-import {
-	formatMoney,
-	getInvestigation,
-	type InvestigationDetail,
-} from "@/lib/api";
+import { AuthError, getInvestigation } from "@/lib/api";
 import {
 	cfoScenarioUrl,
 	entireCheckpointUrl,
 	neatlogsTraceUrl,
 } from "@/lib/links";
+import { formatMoney, type InvestigationDetail } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -335,7 +332,8 @@ export default async function InvestigationPage({
 				<Detail data={data} />
 			</main>
 		);
-	} catch {
+	} catch (err) {
+		if (err instanceof AuthError) redirect("/login");
 		notFound();
 	}
 }
