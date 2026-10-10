@@ -3,14 +3,21 @@
   "checkpoint_id": "01M4K1PK10V311W536H15D34GX",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 7,
   "files_touched": [
+    "apps/web/src/app/error.tsx",
     "apps/web/src/app/investigations/[id]/page.tsx",
     "apps/web/src/app/layout.tsx",
+    "apps/web/src/app/loading.tsx",
     "apps/web/src/app/login/page.tsx",
+    "apps/web/src/app/not-found.tsx",
     "apps/web/src/app/page.tsx",
     "apps/web/src/components/investigations-table.tsx",
+    "apps/web/src/components/review-email-actions.tsx",
     "apps/web/src/components/simulate-button.tsx",
+    "apps/web/src/components/status-badge.tsx",
+    "apps/web/src/lib/api-client.ts",
+    "apps/web/src/lib/status.ts",
     "apps/web/src/lib/types.ts"
   ],
   "sessions": [
@@ -27,13 +34,20 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 8550,
+    "input_tokens": 381698,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 83584,
-    "output_tokens": 1369,
-    "api_call_count": 9
+    "cache_read_tokens": 28554752,
+    "output_tokens": 64698,
+    "api_call_count": 278
   }
 }
