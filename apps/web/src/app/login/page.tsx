@@ -25,15 +25,20 @@ export default function LoginPage() {
 					<Suspense fallback={null}>
 						<LoginForm />
 					</Suspense>
-					<p className="text-muted-foreground text-sm">
-						No account?{" "}
+					<div className="flex items-center justify-between text-sm">
+						<Link
+							href={"/forgot-password" as Route}
+							className="text-muted-foreground underline underline-offset-4"
+						>
+							Forgot password?
+						</Link>
 						<Link
 							href={"/register" as Route}
 							className="text-foreground underline underline-offset-4"
 						>
-							Create one
+							Create account
 						</Link>
-					</p>
+					</div>
 				</CardContent>
 			</Card>
 		</main>

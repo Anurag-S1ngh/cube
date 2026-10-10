@@ -1,3 +1,4 @@
+import { sendEmail } from "@cube/agent";
 import { users } from "@cube/db";
 import { eq, or } from "drizzle-orm";
 import { Router } from "express";
@@ -9,9 +10,16 @@ import {
 } from "../auth/cookies";
 import { getAuth, requireSession } from "../auth/middleware";
 import { hashPassword, verifyPassword } from "../auth/password";
+import {
+	consumePasswordResetToken,
+	createPasswordResetToken,
+	peekPasswordResetToken,
+	revokeAllSessions,
+} from "../auth/passwordReset";
 import { checkRateLimit, resetRateLimit } from "../auth/rateLimit";
 import { RegisterError, register } from "../auth/register";
 import { createSession, revokeSession } from "../auth/sessions";
+import { agentConfig } from "../config";
 import { ENV } from "../env.server";
 import { db } from "../services";
 import { loadProjects } from "./projects";
@@ -128,6 +136,95 @@ authRouter.post("/register", async (req, res) => {
 		apiKey: created.apiKey,
 		webhookSecret: created.webhookSecret,
 	});
+});
+
+authRouter.post("/password/request", async (req, res) => {
+	const body = (req.body ?? {}) as Record<string, unknown>;
+	const email = stringField(body.email) ?? "";
+
+	const ip = req.ip ?? "unknown";
+	const limit = checkRateLimit(`pwreset:${ip}`, {
+		max: ENV.AUTH_LOGIN_MAX_ATTEMPTS,
+		windowMs: ENV.AUTH_LOGIN_WINDOW_MINUTES * 60_000,
+	});
+	if (!limit.allowed) {
+		res.setHeader("Retry-After", Math.ceil(limit.retryAfterMs / 1000));
+		res.status(429).json({ error: "too many attempts, try again later" });
+		return;
+	}
+
+	// Always respond the same way so we never reveal whether an account exists.
+	if (email) {
+		const [user] = await db
+			.select({ id: users.id, email: users.email })
+			.from(users)
+			.where(eq(users.email, email.toLowerCase()))
+			.limit(1);
+		if (user) {
+			const token = await createPasswordResetToken(
+				db,
+				user.id,
+				ENV.PASSWORD_RESET_TTL_MINUTES,
+			);
+			const link = `${ENV.WEB_APP_URL}/reset-password?token=${encodeURIComponent(
+				token,
+			)}`;
+			try {
+				await sendEmail(agentConfig, {
+					to: user.email,
+					subject: "Reset your Cube password",
+					body: `Hi,
+
+We received a request to reset your Cube password. This link expires in ${ENV.PASSWORD_RESET_TTL_MINUTES} minutes:
+
+${link}
+
+If you didn't request this, you can safely ignore this email.
+
+— Cube`,
+				});
+			} catch (error) {
+				console.error("[auth] password reset email failed", error);
+			}
+		}
+	}
+
+	res.status(202).json({ ok: true });
+});
+
+authRouter.get("/password/verify", async (req, res) => {
+	const token =
+		typeof req.query.token === "string" ? req.query.token : undefined;
+	const userId = await peekPasswordResetToken(db, token);
+	res.json({ valid: Boolean(userId) });
+});
+
+authRouter.post("/password/reset", async (req, res) => {
+	const body = (req.body ?? {}) as Record<string, unknown>;
+	const token = stringField(body.token) ?? "";
+	const password = typeof body.password === "string" ? body.password : "";
+
+	if (!token) {
+		res.status(400).json({ error: "a reset token is required" });
+		return;
+	}
+	if (password.length < 8 || password.length > 200) {
+		res.status(400).json({ error: "password must be at least 8 characters" });
+		return;
+	}
+
+	const userId = await consumePasswordResetToken(db, token);
+	if (!userId) {
+		res.status(400).json({ error: "invalid or expired reset link" });
+		return;
+	}
+
+	const passwordHash = await hashPassword(password);
+	await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
+	// A password change invalidates every existing session.
+	await revokeAllSessions(db, userId);
+
+	res.json({ ok: true });
 });
 
 authRouter.post("/logout", async (req, res) => {

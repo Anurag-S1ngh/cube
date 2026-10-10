@@ -72,6 +72,33 @@ export function logout(): Promise<void> {
 	return request("/auth/logout", { method: "POST" });
 }
 
+export function requestPasswordReset(email: string): Promise<{ ok: boolean }> {
+	return request("/auth/password/request", {
+		method: "POST",
+		body: JSON.stringify({ email }),
+	});
+}
+
+export function resetPassword(
+	token: string,
+	password: string,
+): Promise<{ ok: boolean }> {
+	return request("/auth/password/reset", {
+		method: "POST",
+		body: JSON.stringify({ token, password }),
+	});
+}
+
+export async function isResetTokenValid(token: string): Promise<boolean> {
+	const res = await fetch(
+		`${SERVER_URL}/auth/password/verify?token=${encodeURIComponent(token)}`,
+		{ credentials: "include", cache: "no-store" },
+	);
+	if (!res.ok) return false;
+	const data = (await res.json()) as { valid?: boolean };
+	return Boolean(data?.valid);
+}
+
 export async function getMe(): Promise<Me | null> {
 	const res = await fetch(`${SERVER_URL}/auth/me`, {
 		credentials: "include",

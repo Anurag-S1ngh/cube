@@ -39,3 +39,29 @@ export const sessions = pgTable(
 
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// Password reset: single-use, expiring tokens. As with sessions, only a hash
+// of the token is stored and the raw token is emailed to the user.
+// ---------------------------------------------------------------------------
+export const passwordResetTokens = pgTable(
+	"password_reset_tokens",
+	{
+		id: uuid().defaultRandom().primaryKey(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		tokenHash: text("token_hash").notNull(),
+		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+		usedAt: timestamp("used_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		unique("password_reset_tokens_token_hash_key").on(table.tokenHash),
+		index("password_reset_tokens_user_idx").on(table.userId),
+	],
+);
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;

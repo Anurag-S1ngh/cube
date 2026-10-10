@@ -86,6 +86,8 @@ bun run dev                 # web on :3001, API on :3000
 - **Dashboard** uses email + password (Argon2id via `Bun.password`) with an
   opaque session token in an httpOnly, SameSite=Lax cookie. Only the token hash
   is stored. Register at `/register`, or use the seeded demo user.
+- **Password reset** emails a single-use, expiring link (`/forgot-password` →
+  `/reset-password`). Setting a new password revokes every active session.
 - **Machines** use project API keys (`cube_<prefix>_<secret>`, stored hashed,
   revocable, optionally expiring). Send as `Authorization: Bearer …` or
   `x-api-key`.
@@ -105,6 +107,9 @@ bun run dev                 # web on :3001, API on :3000
 | POST | `/auth/login` | none | Email/password login |
 | POST | `/auth/logout` | session | End the session |
 | GET | `/auth/me` | session | Current user + projects |
+| POST | `/auth/password/request` | none | Email a password-reset link |
+| GET | `/auth/password/verify` | none | Check a reset token (`?token=`) |
+| POST | `/auth/password/reset` | none | Set a new password from a token |
 | GET | `/projects` | session | List owned projects |
 | GET | `/projects/:id/webhook-secret` | session | View webhook URL + secret |
 | POST | `/projects/:id/webhook-secret` | session | Rotate the webhook secret |
