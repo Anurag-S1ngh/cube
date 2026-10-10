@@ -2,16 +2,20 @@ import { cookies } from "next/headers";
 
 import { SERVER_URL } from "@/lib/config";
 import type {
+	ApiKey,
 	InvestigationDetail,
 	InvestigationPage,
+	Project,
 	Summary,
 } from "@/lib/types";
 
 export type {
+	ApiKey,
 	EmailAction,
 	InvestigationDetail,
 	InvestigationListItem,
 	InvestigationPage,
+	Project,
 	Summary,
 } from "@/lib/types";
 
@@ -65,4 +69,14 @@ export function getInvestigations(
 
 export function getInvestigation(id: string): Promise<InvestigationDetail> {
 	return getJson<InvestigationDetail>(`/investigations/${id}`);
+}
+
+export async function getProjects(): Promise<Project[]> {
+	const data = await getJson<{ projects: Project[] }>("/projects");
+	return data.projects;
+}
+
+export async function getApiKeys(): Promise<ApiKey[]> {
+	const data = await getJson<{ apiKeys: ApiKey[] }>("/api-keys");
+	return data.apiKeys;
 }

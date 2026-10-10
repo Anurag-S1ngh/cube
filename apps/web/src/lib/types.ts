@@ -22,6 +22,27 @@ export type InvestigationPage = {
 	pageSize: number;
 };
 
+export type Project = {
+	id: string;
+	name: string;
+	slug: string;
+	description: string | null;
+	defaultCurrency: string;
+	hasWebhookSecret: boolean;
+};
+
+export type ApiKey = {
+	id: string;
+	name: string;
+	keyPrefix: string;
+	projectId: string;
+	projectName: string;
+	lastUsedAt: string | null;
+	expiresAt: string | null;
+	revokedAt: string | null;
+	createdAt: string;
+};
+
 export type Summary = {
 	total: number;
 	byStatus: Record<string, number>;

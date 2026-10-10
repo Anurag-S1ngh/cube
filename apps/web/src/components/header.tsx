@@ -5,7 +5,10 @@ import { ModeToggle } from "./mode-toggle";
 import { UserMenu } from "./user-menu";
 
 export default function Header() {
-	const links = [{ to: "/", label: "Home" }] as const;
+	const links = [
+		{ to: "/", label: "Home" },
+		{ to: "/settings/api-keys", label: "API keys" },
+	] as const;
 
 	return (
 		<div>

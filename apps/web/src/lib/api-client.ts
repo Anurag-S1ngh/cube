@@ -66,3 +66,40 @@ export function simulateFailures(
 ): Promise<{ created: number; investigations: string[] }> {
 	return request(`/mock/simulate?count=${count}`, { method: "POST" });
 }
+
+export type CreatedApiKey = {
+	apiKey: {
+		id: string;
+		name: string;
+		keyPrefix: string;
+		projectId: string;
+		createdAt: string;
+	};
+	secret: string;
+};
+
+export function createApiKey(
+	projectId: string,
+	name: string,
+): Promise<CreatedApiKey> {
+	return request("/api-keys", {
+		method: "POST",
+		body: JSON.stringify({ projectId, name }),
+	});
+}
+
+export function revokeApiKey(id: string): Promise<void> {
+	return request(`/api-keys/${id}`, { method: "DELETE" });
+}
+
+export function getWebhookSecret(
+	projectId: string,
+): Promise<{ webhookUrl: string; webhookSecret: string | null }> {
+	return request(`/projects/${projectId}/webhook-secret`);
+}
+
+export function rotateWebhookSecret(
+	projectId: string,
+): Promise<{ webhookUrl: string; webhookSecret: string }> {
+	return request(`/projects/${projectId}/webhook-secret`, { method: "POST" });
+}
