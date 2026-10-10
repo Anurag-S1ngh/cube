@@ -26,6 +26,9 @@
       "cache": false,
       "interactive": true
     },
+    "cfo:publish": {
+      "cache": false
+    },
     "dev": {
       "cache": false,
       "persistent": true
