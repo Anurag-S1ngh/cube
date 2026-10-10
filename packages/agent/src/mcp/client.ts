@@ -20,6 +20,8 @@ type JsonRpcResponse = {
 export type McpClientOptions = {
 	url: string;
 	token?: string;
+	/** Resolve a bearer token per request (e.g. OAuth with refresh). */
+	getToken?: () => Promise<string | null>;
 	orgId?: string;
 	timeoutMs?: number;
 };
@@ -45,6 +47,7 @@ function parseSse(body: string): unknown {
 export class McpClient {
 	private readonly url: string;
 	private readonly token?: string;
+	private readonly getToken?: () => Promise<string | null>;
 	private readonly orgId?: string;
 	private readonly timeoutMs: number;
 	private sessionId?: string;
@@ -54,27 +57,38 @@ export class McpClient {
 	constructor(options: McpClientOptions) {
 		this.url = options.url;
 		this.token = options.token;
+		this.getToken = options.getToken;
 		this.orgId = options.orgId;
 		this.timeoutMs = options.timeoutMs ?? 15_000;
 	}
 
-	private headers(): Record<string, string> {
+	private async resolveToken(): Promise<string | undefined> {
+		if (this.getToken) {
+			const token = await this.getToken();
+			if (!token) throw new Error("no MCP access token available");
+			return token;
+		}
+		return this.token;
+	}
+
+	private headers(token: string | undefined): Record<string, string> {
 		const headers: Record<string, string> = {
 			"content-type": "application/json",
 			accept: "application/json, text/event-stream",
 		};
-		if (this.token) headers.authorization = `Bearer ${this.token}`;
+		if (token) headers.authorization = `Bearer ${token}`;
 		if (this.sessionId) headers["mcp-session-id"] = this.sessionId;
 		return headers;
 	}
 
 	private async rpc(method: string, params: unknown): Promise<unknown> {
+		const token = await this.resolveToken();
 		const controller = new AbortController();
 		const timer = setTimeout(() => controller.abort(), this.timeoutMs);
 		try {
 			const response = await fetch(this.url, {
 				method: "POST",
-				headers: this.headers(),
+				headers: this.headers(token),
 				body: JSON.stringify({
 					jsonrpc: "2.0",
 					id: this.nextId++,
@@ -153,6 +167,6 @@ export class McpClient {
 	}
 
 	isConfigured(): boolean {
-		return Boolean(this.token);
+		return Boolean(this.token || this.getToken);
 	}
 }

@@ -22,6 +22,10 @@
     "simulate": {
       "cache": false
     },
+    "cfo:login": {
+      "cache": false,
+      "interactive": true
+    },
     "dev": {
       "cache": false,
       "persistent": true
@@ -55,6 +59,7 @@
     "CFO_AI_MCP_URL",
     "CFO_AI_TOKEN",
     "CFO_AI_ORG_ID",
+    "CFO_AI_CREDENTIALS_PATH",
     "NEATLOGS_API_KEY",
     "EMAIL_PROVIDER",
     "RESEND_API_KEY",

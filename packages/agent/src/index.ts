@@ -4,6 +4,7 @@ export * from "./format";
 export * from "./ingest";
 export * from "./llm";
 export * from "./mcp/client";
+export * from "./mcp/oauth";
 export * from "./mitigate";
 export * from "./mock/provider";
 export * from "./observability";

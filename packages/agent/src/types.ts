@@ -23,6 +23,12 @@ export type AgentConfig = {
 		mcpUrl: string;
 		token?: string;
 		orgId?: string;
+		/** Interactive OAuth (dynamic client registration + PKCE) settings. */
+		oauth?: {
+			credentialsPath: string;
+			redirectPort?: number;
+			scope?: string;
+		};
 	};
 	neatlogs: {
 		apiKey?: string;

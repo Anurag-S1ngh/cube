@@ -32,6 +32,7 @@
     "test": "turbo run test",
     "seed": "turbo run seed -F server",
     "simulate": "turbo run simulate -F server --",
+    "cfo:login": "turbo run cfo:login -F server",
     "db:push": "turbo run db:push -F @cube/db --",
     "db:studio": "turbo run db:studio -F @cube/db --",
     "db:generate": "turbo run db:generate -F @cube/db --",

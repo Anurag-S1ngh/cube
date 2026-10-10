@@ -24,6 +24,10 @@ export const agentConfig: AgentConfig = {
 		mcpUrl: ENV.CFO_AI_MCP_URL,
 		token: ENV.CFO_AI_TOKEN || undefined,
 		orgId: ENV.CFO_AI_ORG_ID || undefined,
+		oauth: {
+			credentialsPath:
+				ENV.CFO_AI_CREDENTIALS_PATH || ".cfo-ai/credentials.json",
+		},
 	},
 	neatlogs: {
 		apiKey: ENV.NEATLOGS_API_KEY || undefined,

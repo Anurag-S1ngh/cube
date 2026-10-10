@@ -4,6 +4,8 @@ import { and, eq, sum } from "drizzle-orm";
 
 import type { InvestigationContext } from "../context";
 import { McpClient } from "../mcp/client";
+import type { OAuthConfig } from "../mcp/oauth";
+import { getAccessToken } from "../mcp/oauth";
 import type { AgentConfig } from "../types";
 
 export type FinancialContext = {
@@ -25,13 +27,26 @@ let cachedClient: McpClient | null = null;
 let cachedKey = "";
 
 function client(config: AgentConfig): McpClient | null {
-	if (!config.cfo.token) return null;
-	const key = `${config.cfo.mcpUrl}::${config.cfo.orgId ?? ""}`;
+	const oauth = config.cfo.oauth;
+	if (!config.cfo.token && !oauth) return null;
+
+	const key = `${config.cfo.mcpUrl}::${config.cfo.orgId ?? ""}::${
+		config.cfo.token ? "static" : (oauth?.credentialsPath ?? "")
+	}`;
 	if (!cachedClient || cachedKey !== key) {
+		const oauthConfig: OAuthConfig | undefined = oauth
+			? {
+					mcpUrl: config.cfo.mcpUrl,
+					credentialsPath: oauth.credentialsPath,
+					redirectPort: oauth.redirectPort,
+					scope: oauth.scope,
+				}
+			: undefined;
 		cachedClient = new McpClient({
 			url: config.cfo.mcpUrl,
 			token: config.cfo.token,
 			orgId: config.cfo.orgId,
+			getToken: oauthConfig ? () => getAccessToken(oauthConfig) : undefined,
 		});
 		cachedKey = key;
 	}

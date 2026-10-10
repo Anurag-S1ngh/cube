@@ -21,6 +21,9 @@ local.db-*
 .mcp.json
 .cursor/
 
+# cfo.ai OAuth token cache
+.cfo-ai/
+
 # IDEs and editors
 .vscode/*
 !.vscode/settings.json

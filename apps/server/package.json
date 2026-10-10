@@ -10,6 +10,7 @@
     "start": "bun run dist/index.mjs",
     "seed": "bun run src/scripts/seed-demo.ts",
     "simulate": "bun run src/scripts/simulate.ts",
+    "cfo:login": "bun run src/scripts/cfo-login.ts",
     "env:generate": "varlock codegen"
   },
   "dependencies": {
