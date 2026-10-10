@@ -79,6 +79,9 @@ export const projects = pgTable(
 			.notNull()
 			.references(() => users.id),
 		defaultCurrency: currencyEnum("default_currency").notNull(),
+		// HMAC secret used to verify this project's payment webhooks. Stored in
+		// plaintext because signature verification must recompute the HMAC.
+		webhookSecret: text("webhook_secret"),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.default(sql`now()`)
 			.notNull(),

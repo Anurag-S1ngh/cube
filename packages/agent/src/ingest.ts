@@ -28,6 +28,7 @@ const uuidPattern =
 export async function ingestFailedPayment(
 	db: Database,
 	payload: PaymentFailurePayload,
+	expectedProjectId?: string,
 ): Promise<IngestResult> {
 	const { customerId, declineCode } = payload.data;
 
@@ -68,6 +69,9 @@ export async function ingestFailedPayment(
 		.limit(1);
 	if (!customer) {
 		throw new IngestError(`unknown customer: ${customerId}`);
+	}
+	if (expectedProjectId && customer.projectId !== expectedProjectId) {
+		throw new IngestError("customer does not belong to this project");
 	}
 
 	const [event] = await db

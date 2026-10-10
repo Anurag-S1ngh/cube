@@ -14,6 +14,7 @@ import { eq } from "drizzle-orm";
 import { generateApiKey } from "../auth/apiKeys";
 import { hashPassword } from "../auth/password";
 import { db } from "../services";
+import { generateWebhookSecret } from "../webhookSecret";
 
 const DEMO_EMAIL = "demo@cube.test";
 const DEMO_USERNAME = "demo";
@@ -73,6 +74,7 @@ export async function seedDemo(): Promise<{
 	projectId: string;
 	customerCount: number;
 	apiKey?: string;
+	webhookSecret: string;
 }> {
 	// 1. Owner user (with a login password)
 	const passwordHash = await hashPassword(DEMO_PASSWORD);
@@ -106,11 +108,21 @@ export async function seedDemo(): Promise<{
 		})
 		.onConflictDoNothing();
 	const [project] = await db
-		.select({ id: projects.id })
+		.select({ id: projects.id, webhookSecret: projects.webhookSecret })
 		.from(projects)
 		.where(eq(projects.slug, "demo-billing"))
 		.limit(1);
 	if (!project) throw new Error("failed to seed project");
+
+	// 2b. Webhook signing secret (created once; drives per-project HMAC verify)
+	let webhookSecret = project.webhookSecret;
+	if (!webhookSecret) {
+		webhookSecret = generateWebhookSecret();
+		await db
+			.update(projects)
+			.set({ webhookSecret })
+			.where(eq(projects.id, project.id));
+	}
 
 	// 3. Metric + plan + price
 	await db
@@ -232,7 +244,7 @@ export async function seedDemo(): Promise<{
 		apiKey = generated.raw;
 	}
 
-	return { projectId: project.id, customerCount, apiKey };
+	return { projectId: project.id, customerCount, apiKey, webhookSecret };
 }
 
 if (import.meta.main) {
@@ -241,6 +253,7 @@ if (import.meta.main) {
 		`Seeded demo project ${result.projectId} with ${result.customerCount} customers`,
 	);
 	console.log(`  login:   ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
+	console.log(`  webhook: ${result.webhookSecret}`);
 	if (result.apiKey) {
 		console.log(`  api key: ${result.apiKey}`);
 	} else {
