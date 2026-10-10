@@ -1,5 +1,10 @@
-import type { Database } from "@cube/db";
-import { failedPaymentEvents, investigations } from "@cube/db";
+import type { Database, DeclineCode } from "@cube/db";
+import {
+	customers,
+	declineCodes,
+	failedPaymentEvents,
+	investigations,
+} from "@cube/db";
 import { eq } from "drizzle-orm";
 
 import type { PaymentFailurePayload } from "./types";
@@ -10,6 +15,12 @@ export type IngestResult = {
 	duplicate: boolean;
 };
 
+/** Thrown for a payload the provider should not have sent (maps to HTTP 400). */
+export class IngestError extends Error {}
+
+const uuidPattern =
+	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Turn a provider webhook payload into an event + investigation.
  * Idempotent on the provider event id, so webhook re-delivery is safe.
@@ -18,6 +29,15 @@ export async function ingestFailedPayment(
 	db: Database,
 	payload: PaymentFailurePayload,
 ): Promise<IngestResult> {
+	const { customerId, declineCode } = payload.data;
+
+	if (!customerId || !uuidPattern.test(customerId)) {
+		throw new IngestError("payload has an invalid customerId");
+	}
+	if (!declineCodes.includes(declineCode as DeclineCode)) {
+		throw new IngestError(`unknown declineCode: ${String(declineCode)}`);
+	}
+
 	const [existing] = await db
 		.select({
 			eventId: failedPaymentEvents.id,
@@ -39,18 +59,29 @@ export async function ingestFailedPayment(
 		};
 	}
 
+	// The customer is authoritative for the project; derive it rather than
+	// trusting an optional (possibly absent) value on the payload.
+	const [customer] = await db
+		.select({ projectId: customers.projectId })
+		.from(customers)
+		.where(eq(customers.id, customerId))
+		.limit(1);
+	if (!customer) {
+		throw new IngestError(`unknown customer: ${customerId}`);
+	}
+
 	const [event] = await db
 		.insert(failedPaymentEvents)
 		.values({
 			provider: payload.provider,
 			providerEventId: payload.id,
-			projectId: payload.data.projectId ?? "",
-			customerId: payload.data.customerId as string,
+			projectId: customer.projectId,
+			customerId,
 			invoiceId: payload.data.invoiceId,
 			invoiceNumber: payload.data.invoiceNumber,
 			amountCents: payload.data.amountCents,
 			currency: payload.data.currency,
-			declineCode: payload.data.declineCode,
+			declineCode,
 			attemptNumber: payload.data.attemptNumber,
 			raw: payload as unknown as Record<string, unknown>,
 		})
@@ -64,7 +95,7 @@ export async function ingestFailedPayment(
 		.insert(investigations)
 		.values({
 			eventId: event.id,
-			customerId: payload.data.customerId as string,
+			customerId,
 			status: "received",
 		})
 		.returning({ id: investigations.id });

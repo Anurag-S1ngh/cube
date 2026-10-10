@@ -1,6 +1,6 @@
 import type { PaymentFailurePayload } from "@cube/agent";
 
-import { ingestFailedPayment, verifySignature } from "@cube/agent";
+import { IngestError, ingestFailedPayment, verifySignature } from "@cube/agent";
 import { Router } from "express";
 
 import { agentConfig } from "../config";
@@ -43,7 +43,16 @@ webhooksRouter.post("/stripe", async (req, res) => {
 		return;
 	}
 
-	const result = await ingestFailedPayment(db, payload);
+	let result: Awaited<ReturnType<typeof ingestFailedPayment>>;
+	try {
+		result = await ingestFailedPayment(db, payload);
+	} catch (error) {
+		if (error instanceof IngestError) {
+			res.status(400).json({ error: error.message });
+			return;
+		}
+		throw error;
+	}
 	if (!result.duplicate) {
 		queue.enqueue(result.investigationId);
 	}
