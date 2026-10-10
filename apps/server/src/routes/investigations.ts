@@ -101,6 +101,7 @@ investigationsRouter.get("/summary", async (_req, res) => {
 			revenueAtRiskCents: 0,
 			emailsSent: 0,
 			emailsBlocked: 0,
+			emailsQueued: 0,
 		});
 		return;
 	}
@@ -132,6 +133,7 @@ investigationsRouter.get("/summary", async (_req, res) => {
 		.where(inArray(customers.projectId, projectIds));
 	const emailsSent = emails.filter((e) => e.status === "sent").length;
 	const emailsBlocked = emails.filter((e) => e.status === "blocked").length;
+	const emailsQueued = emails.filter((e) => e.status === "queued").length;
 
 	res.json({
 		total: rows.length,
@@ -139,6 +141,7 @@ investigationsRouter.get("/summary", async (_req, res) => {
 		revenueAtRiskCents,
 		emailsSent,
 		emailsBlocked,
+		emailsQueued,
 	});
 });
 
