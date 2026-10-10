@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4K07470KK8V32WW0D44787Y",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 11,
+  "files_touched": [
+    "apps/web/.env.schema",
+    "apps/web/src/app/investigations/[id]/page.tsx",
+    "apps/web/src/app/login/page.tsx",
+    "apps/web/src/app/page.tsx",
+    "apps/web/src/components/header.tsx",
+    "apps/web/src/components/investigations-table.tsx",
+    "apps/web/src/components/login-form.tsx",
+    "apps/web/src/components/simulate-button.tsx",
+    "apps/web/src/components/user-menu.tsx",
+    "apps/web/src/lib/api.ts",
+    "apps/web/src/lib/auth-client.ts",
+    "apps/web/src/lib/config.ts",
+    "apps/web/src/lib/session.ts",
+    "apps/web/src/lib/types.ts",
+    "apps/web/src/proxy.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 170220,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 17984384,
+    "output_tokens": 48879,
+    "api_call_count": 209
+  }
+}
