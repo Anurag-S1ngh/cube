@@ -5,6 +5,7 @@ export * from "./ingest";
 export * from "./mcp/client";
 export * from "./mitigate";
 export * from "./mock/provider";
+export * from "./observability";
 export * from "./pipeline";
 export * from "./policy";
 export * from "./queue";

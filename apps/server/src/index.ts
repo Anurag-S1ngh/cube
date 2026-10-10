@@ -1,12 +1,16 @@
+import { initObservability } from "@cube/agent";
 import cors from "cors";
 import express from "express";
 
+import { agentConfig } from "./config";
 import { ENV } from "./env.server";
 import { queue } from "./queue";
 import { investigationsRouter } from "./routes/investigations";
 import { mockRouter } from "./routes/mock";
 import { webhooksRouter } from "./routes/webhooks";
 import type { RawBodyRequest } from "./types";
+
+await initObservability(agentConfig);
 
 const app = express();
 

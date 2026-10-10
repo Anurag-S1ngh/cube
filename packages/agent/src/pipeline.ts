@@ -1,5 +1,6 @@
 import type { Database } from "@cube/db";
 import {
+	agentRuns,
 	approvals,
 	auditLog,
 	causes,
@@ -10,10 +11,14 @@ import {
 } from "@cube/db";
 import { eq } from "drizzle-orm";
 
+import type { Classification } from "./classify";
 import { classify } from "./classify";
+import type { InvestigationContext } from "./context";
 import { gatherContext } from "./context";
 import { formatMoney } from "./format";
+import type { RecommendationResult } from "./mitigate";
 import { recommend } from "./mitigate";
+import { logStep, withSpan, withWorkflow } from "./observability";
 import { evaluateOutreachPolicy } from "./policy";
 import { createMitigationScenario, getFinancialContext } from "./tools/cfo";
 import { renderEmail, sendEmail } from "./tools/email";
@@ -54,94 +59,151 @@ async function recordAudit(
 }
 
 /**
- * Investigate one failed payment: gather context, classify the probable cause
- * and produce a recommended mitigation. Act (email) and observability are
- * layered on in later phases.
+ * Investigate one failed payment inside a single neatlogs workflow trace.
+ * Every step (tool call, agent step, guardrail, email) is a nested span.
  */
 export async function runInvestigation(
 	db: Database,
 	config: AgentConfig,
 	investigationId: string,
 ): Promise<void> {
+	const startedAt = Date.now();
 	await setStatus(db, investigationId, "investigating");
 
 	try {
-		const ctx = await gatherContext(db, investigationId);
+		await withWorkflow(
+			`investigation:${investigationId}`,
+			{ investigationId },
+			async (traceId) => {
+				await db
+					.update(investigations)
+					.set({ neatlogsTraceId: traceId, updatedAt: new Date() })
+					.where(eq(investigations.id, investigationId));
 
-		// Enrich with the customer's financial position (cfo.ai or ledger).
-		const finance = await getFinancialContext(db, config, ctx);
-		await db
-			.update(investigations)
-			.set({
-				outstandingBalanceCents: finance.outstandingBalanceCents,
-				revenueAtRiskCents: finance.revenueAtRiskCents,
-				cfoEvidence: finance.evidence,
-				updatedAt: new Date(),
-			})
-			.where(eq(investigations.id, investigationId));
+				const ctx = await withSpan(
+					"context.fetch_history",
+					"TOOL",
+					{ investigationId },
+					() => gatherContext(db, investigationId),
+				);
 
-		const classification = classify(ctx);
+				const finance = await withSpan(
+					"cfo.query_model",
+					"MCP_TOOL",
+					{ customer: ctx.customer.externalId },
+					() => getFinancialContext(db, config, ctx),
+				);
+				await db
+					.update(investigations)
+					.set({
+						outstandingBalanceCents: finance.outstandingBalanceCents,
+						revenueAtRiskCents: finance.revenueAtRiskCents,
+						cfoEvidence: finance.evidence,
+						updatedAt: new Date(),
+					})
+					.where(eq(investigations.id, investigationId));
 
-		await db.delete(causes).where(eq(causes.investigationId, investigationId));
-		await db.insert(causes).values({
-			investigationId,
-			code: classification.code,
-			label: classification.label,
-			severity: classification.severity,
-			confidence: classification.confidence,
-			evidence: classification.evidence,
-		});
-		await setStatus(db, investigationId, "classified");
+				const classification = await withSpan(
+					"classify.cause",
+					"AGENT",
+					{ declineCode: ctx.event.declineCode },
+					async () => classify(ctx),
+				);
+				logStep("cause_classified", {
+					code: classification.code,
+					severity: classification.severity,
+					confidence: classification.confidence,
+				});
 
-		const recommendation = recommend(ctx, classification);
+				await db
+					.delete(causes)
+					.where(eq(causes.investigationId, investigationId));
+				await db.insert(causes).values({
+					investigationId,
+					code: classification.code,
+					label: classification.label,
+					severity: classification.severity,
+					confidence: classification.confidence,
+					evidence: classification.evidence,
+				});
+				await setStatus(db, investigationId, "classified");
 
-		await db
-			.delete(recommendations)
-			.where(eq(recommendations.investigationId, investigationId));
-		await db.insert(recommendations).values({
-			investigationId,
-			summary: recommendation.summary,
-			rationale: recommendation.rationale,
-			actions: recommendation.actions,
-			cashImpactCents: recommendation.cashImpactCents,
-		});
+				const recommendation = await withSpan(
+					"recommend.mitigation",
+					"AGENT",
+					{ severity: classification.severity },
+					async () => recommend(ctx, classification),
+				);
 
-		// Model the recovery as a deterministic cfo.ai scenario.
-		const scenario = await createMitigationScenario(config, {
-			investigationId,
-			kind: classification.code,
-			amountCents: recommendation.cashImpactCents,
-			customer: ctx.customer.name ?? ctx.customer.externalId,
-		});
-		await db
-			.delete(mitigationScenarios)
-			.where(eq(mitigationScenarios.investigationId, investigationId));
-		await db.insert(mitigationScenarios).values({
-			investigationId,
-			cfoRef: scenario.ref,
-			kind: scenario.kind,
-			projectedInflowCents: scenario.projectedInflowCents,
-			assumptions: scenario.assumptions,
-		});
-		await db
-			.update(investigations)
-			.set({ cfoScenarioRef: scenario.ref, updatedAt: new Date() })
-			.where(eq(investigations.id, investigationId));
+				await db
+					.delete(recommendations)
+					.where(eq(recommendations.investigationId, investigationId));
+				await db.insert(recommendations).values({
+					investigationId,
+					summary: recommendation.summary,
+					rationale: recommendation.rationale,
+					actions: recommendation.actions,
+					cashImpactCents: recommendation.cashImpactCents,
+				});
 
-		await recordAudit(db, investigationId, "classified", {
-			cause: classification.code,
-			confidence: classification.confidence,
-			severity: classification.severity,
-			financeSource: finance.source,
-		});
-		await recordAudit(db, investigationId, "recommended", {
-			actions: recommendation.actions.map((a) => a.type),
-			retryScheduleDays: recommendation.retryScheduleDays,
-			scenarioRef: scenario.ref,
-			scenarioSource: scenario.source,
-		});
+				const scenario = await withSpan(
+					"cfo.create_scenario",
+					"MCP_TOOL",
+					{ kind: classification.code },
+					() =>
+						createMitigationScenario(config, {
+							investigationId,
+							kind: classification.code,
+							amountCents: recommendation.cashImpactCents,
+							customer: ctx.customer.name ?? ctx.customer.externalId,
+						}),
+				);
+				await db
+					.delete(mitigationScenarios)
+					.where(eq(mitigationScenarios.investigationId, investigationId));
+				await db.insert(mitigationScenarios).values({
+					investigationId,
+					cfoRef: scenario.ref,
+					kind: scenario.kind,
+					projectedInflowCents: scenario.projectedInflowCents,
+					assumptions: scenario.assumptions,
+				});
+				await db
+					.update(investigations)
+					.set({ cfoScenarioRef: scenario.ref, updatedAt: new Date() })
+					.where(eq(investigations.id, investigationId));
 
-		await act(db, config, investigationId, ctx, classification, recommendation);
+				await recordAudit(db, investigationId, "classified", {
+					cause: classification.code,
+					confidence: classification.confidence,
+					severity: classification.severity,
+					financeSource: finance.source,
+				});
+				await recordAudit(db, investigationId, "recommended", {
+					actions: recommendation.actions.map((a) => a.type),
+					retryScheduleDays: recommendation.retryScheduleDays,
+					scenarioRef: scenario.ref,
+					scenarioSource: scenario.source,
+				});
+
+				await act(
+					db,
+					config,
+					investigationId,
+					ctx,
+					classification,
+					recommendation,
+				);
+
+				await db.insert(agentRuns).values({
+					investigationId,
+					pipelineState: "completed",
+					model: config.llm.model,
+					latencyMs: Date.now() - startedAt,
+					neatlogsTraceId: traceId,
+				});
+			},
+		);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		await setStatus(db, investigationId, "failed", message);
@@ -158,16 +220,15 @@ async function act(
 	db: Database,
 	config: AgentConfig,
 	investigationId: string,
-	ctx: Awaited<ReturnType<typeof gatherContext>>,
-	classification: ReturnType<typeof classify>,
-	recommendation: ReturnType<typeof recommend>,
+	ctx: InvestigationContext,
+	classification: Classification,
+	recommendation: RecommendationResult,
 ): Promise<void> {
 	const emailAction = recommendation.actions.find(
 		(a) => a.type === "email_reminder",
 	);
 
 	if (!emailAction) {
-		// Nothing to send (e.g. silent retry, or a risk escalation).
 		await db
 			.delete(emailActions)
 			.where(eq(emailActions.investigationId, investigationId));
@@ -185,7 +246,13 @@ async function act(
 		return;
 	}
 
-	const policy = await evaluateOutreachPolicy(db, config, ctx, classification);
+	const policy = await withSpan(
+		"policy.pre_send",
+		"GUARDRAIL",
+		{ severity: classification.severity },
+		() => evaluateOutreachPolicy(db, config, ctx, classification),
+	);
+
 	const to = ctx.customer.email ?? "";
 	const vars = {
 		customerName: ctx.customer.name ?? "there",
@@ -212,6 +279,10 @@ async function act(
 			provider: config.email.provider,
 			blockReason: policy.reason ?? "blocked by policy",
 		});
+		logStep("email_blocked", {
+			reason: policy.reason ?? "blocked by policy",
+			checks: policy.checks,
+		});
 		await recordAudit(db, investigationId, "email_blocked", {
 			reason: policy.reason,
 			checks: policy.checks,
@@ -220,11 +291,18 @@ async function act(
 		return;
 	}
 
-	const send = await sendEmail(config, {
-		to,
-		subject: rendered.subject,
-		body: rendered.body,
-	});
+	const send = await withSpan(
+		"email.send",
+		"TOOL",
+		{ templateId: emailAction.templateId },
+		() =>
+			sendEmail(config, {
+				to,
+				subject: rendered.subject,
+				body: rendered.body,
+			}),
+	);
+
 	await db.insert(emailActions).values({
 		investigationId,
 		templateId: emailAction.templateId ?? "reminder.generic_decline",
@@ -248,6 +326,10 @@ async function act(
 		provider: send.provider,
 		providerMessageId: send.providerMessageId,
 		checks: policy.checks,
+	});
+	logStep("email_sent", {
+		templateId: emailAction.templateId,
+		provider: send.provider,
 	});
 	await setStatus(db, investigationId, "actioned");
 }
