@@ -1,4 +1,5 @@
 import {
+	apiKeys,
 	customers,
 	invoices,
 	metrics,
@@ -10,7 +11,13 @@ import {
 } from "@cube/db";
 import { eq } from "drizzle-orm";
 
+import { generateApiKey } from "../auth/apiKeys";
+import { hashPassword } from "../auth/password";
 import { db } from "../services";
+
+const DEMO_EMAIL = "demo@cube.test";
+const DEMO_USERNAME = "demo";
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? "demo-password";
 
 type DemoCustomer = {
 	externalId: string;
@@ -65,16 +72,25 @@ function daysAgo(days: number): Date {
 export async function seedDemo(): Promise<{
 	projectId: string;
 	customerCount: number;
+	apiKey?: string;
 }> {
-	// 1. Owner user
+	// 1. Owner user (with a login password)
+	const passwordHash = await hashPassword(DEMO_PASSWORD);
 	await db
 		.insert(users)
-		.values({ username: "demo", email: "demo@cube.test" })
-		.onConflictDoNothing();
+		.values({
+			username: DEMO_USERNAME,
+			email: DEMO_EMAIL,
+			passwordHash,
+		})
+		.onConflictDoUpdate({
+			target: users.username,
+			set: { passwordHash, email: DEMO_EMAIL },
+		});
 	const [owner] = await db
 		.select({ id: users.id })
 		.from(users)
-		.where(eq(users.username, "demo"))
+		.where(eq(users.username, DEMO_USERNAME))
 		.limit(1);
 	if (!owner) throw new Error("failed to seed owner user");
 
@@ -197,7 +213,26 @@ export async function seedDemo(): Promise<{
 			.onConflictDoNothing();
 	}
 
-	return { projectId: project.id, customerCount };
+	// 5. API key for machine access (created once; printed below)
+	const [existingKey] = await db
+		.select({ id: apiKeys.id })
+		.from(apiKeys)
+		.where(eq(apiKeys.projectId, project.id))
+		.limit(1);
+
+	let apiKey: string | undefined;
+	if (!existingKey) {
+		const generated = generateApiKey();
+		await db.insert(apiKeys).values({
+			projectId: project.id,
+			name: "Demo server key",
+			keyPrefix: generated.keyPrefix,
+			keyHash: generated.keyHash,
+		});
+		apiKey = generated.raw;
+	}
+
+	return { projectId: project.id, customerCount, apiKey };
 }
 
 if (import.meta.main) {
@@ -205,5 +240,11 @@ if (import.meta.main) {
 	console.log(
 		`Seeded demo project ${result.projectId} with ${result.customerCount} customers`,
 	);
+	console.log(`  login:   ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
+	if (result.apiKey) {
+		console.log(`  api key: ${result.apiKey}`);
+	} else {
+		console.log("  api key: (already exists — revoke + re-run to rotate)");
+	}
 	process.exit(0);
 }

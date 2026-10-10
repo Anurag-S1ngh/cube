@@ -55,6 +55,9 @@ export const users = pgTable(
 		id: uuid().defaultRandom().primaryKey(),
 		username: text().notNull(),
 		email: text().notNull(),
+		// Argon2id hash (via Bun.password). Nullable only to allow rolling the
+		// column onto pre-existing rows; a user without a hash cannot log in.
+		passwordHash: text("password_hash"),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.default(sql`now()`)
 			.notNull(),
