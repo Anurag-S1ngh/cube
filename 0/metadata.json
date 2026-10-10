@@ -1,0 +1,46 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4K3Q0BVZRVNQ1PXE8N2WSRH",
+  "session_id": "ses_eda4d7eb6ffeziFdwt0KpEH2bL",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-10T14:33:42.04732Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "apps/server/src/auth/register.ts",
+    "apps/server/src/routes/auth.ts",
+    "apps/web/src/app/login/page.tsx",
+    "apps/web/src/app/register/page.tsx",
+    "apps/web/src/components/register-form.tsx",
+    "apps/web/src/lib/auth-client.ts",
+    "apps/web/src/proxy.ts"
+  ],
+  "agent": "OpenCode",
+  "model": "deepseek-v4.1-flash",
+  "turn_id": "09bf54c23cb2",
+  "checkpoint_transcript_start": 363,
+  "transcript_lines_at_start": 363,
+  "compact_transcript_start": 363,
+  "token_usage": {
+    "input_tokens": 18846,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 8403968,
+    "output_tokens": 10742,
+    "api_call_count": 33
+  },
+  "session_metrics": {
+    "turn_count": 19
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-10T14:33:41.920184Z",
+    "agent_lines": 363,
+    "agent_removed": 3,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 363,
+    "total_lines_changed": 366,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}

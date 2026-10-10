@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4K3Q0BVZRVNQ1PXE8N2WSRH",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "apps/server/src/auth/register.ts",
+    "apps/server/src/routes/auth.ts",
+    "apps/web/src/app/login/page.tsx",
+    "apps/web/src/app/register/page.tsx",
+    "apps/web/src/components/register-form.tsx",
+    "apps/web/src/lib/auth-client.ts",
+    "apps/web/src/proxy.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 18846,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 8403968,
+    "output_tokens": 10742,
+    "api_call_count": 33
+  }
+}
