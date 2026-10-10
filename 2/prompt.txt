@@ -1,1 +1,1 @@
-yes do commit when you have substantial progress, don't rely on me saying do git commit
+also spwan multiple subagents to finish these tasks fast
