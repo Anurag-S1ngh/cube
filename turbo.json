@@ -54,7 +54,7 @@
     "CFO_AI_ORG_ID",
     "NEATLOGS_API_KEY",
     "EMAIL_PROVIDER",
-    "EMAIL_API_KEY",
+    "RESEND_API_KEY",
     "EMAIL_FROM",
     "LLM_API_KEY",
     "LLM_BASE_URL",

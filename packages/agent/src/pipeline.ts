@@ -291,17 +291,38 @@ async function act(
 		return;
 	}
 
-	const send = await withSpan(
-		"email.send",
-		"TOOL",
-		{ templateId: emailAction.templateId },
-		() =>
-			sendEmail(config, {
-				to,
-				subject: rendered.subject,
-				body: rendered.body,
-			}),
-	);
+	let send: Awaited<ReturnType<typeof sendEmail>>;
+	try {
+		send = await withSpan(
+			"email.send",
+			"TOOL",
+			{ templateId: emailAction.templateId, provider: config.email.provider },
+			() =>
+				sendEmail(config, {
+					to,
+					subject: rendered.subject,
+					body: rendered.body,
+				}),
+		);
+	} catch (error) {
+		// The provider rejected the send (bad key, unverified domain, outage).
+		// Record the failure instead of failing the whole investigation.
+		const reason = error instanceof Error ? error.message : String(error);
+		await db.insert(emailActions).values({
+			investigationId,
+			templateId: emailAction.templateId ?? "reminder.generic_decline",
+			to,
+			subject: rendered.subject,
+			body: rendered.body,
+			status: "failed",
+			provider: config.email.provider,
+			blockReason: reason,
+		});
+		await recordAudit(db, investigationId, "email_failed", { reason });
+		logStep("email_failed", { reason });
+		await setStatus(db, investigationId, "recommended");
+		return;
+	}
 
 	await db.insert(emailActions).values({
 		investigationId,

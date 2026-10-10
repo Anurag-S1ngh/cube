@@ -2,6 +2,12 @@ import type { AgentConfig } from "@cube/agent";
 
 import { ENV } from "./env.server";
 
+const resendKey = ENV.RESEND_API_KEY || undefined;
+// The Resend provider needs an API key; without one, fall back to mock so the
+// pipeline keeps working locally.
+const emailProvider =
+	ENV.EMAIL_PROVIDER === "resend" && !resendKey ? "mock" : ENV.EMAIL_PROVIDER;
+
 export const agentConfig: AgentConfig = {
 	llm: {
 		apiKey: ENV.LLM_API_KEY || undefined,
@@ -9,9 +15,9 @@ export const agentConfig: AgentConfig = {
 		model: ENV.LLM_MODEL ?? "gpt-4o-mini",
 	},
 	email: {
-		provider: ENV.EMAIL_PROVIDER,
-		apiKey: ENV.EMAIL_API_KEY || undefined,
-		from: ENV.EMAIL_FROM ?? "payments@example.com",
+		provider: emailProvider,
+		apiKey: resendKey,
+		from: ENV.EMAIL_FROM ?? "onboarding@resend.dev",
 	},
 	cfo: {
 		mcpUrl: ENV.CFO_AI_MCP_URL,
