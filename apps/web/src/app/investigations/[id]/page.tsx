@@ -8,6 +8,8 @@ import {
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { ReviewEmailActions } from "@/components/review-email-actions";
+import { StatusBadge } from "@/components/status-badge";
 import { AuthError, getInvestigation } from "@/lib/api";
 import {
 	cfoScenarioUrl,
@@ -17,6 +19,8 @@ import {
 import { formatMoney, type InvestigationDetail } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+export const metadata = { title: "Investigation" };
 
 function Section({
 	title,
@@ -100,9 +104,10 @@ function Detail({ data }: { data: InvestigationDetail }) {
 						<span className="font-mono">{event.declineCode}</span>
 					</p>
 				</div>
-				<span className="rounded-full bg-muted px-3 py-1 font-medium text-xs capitalize">
-					{investigation.status}
-				</span>
+				<StatusBadge
+					status={investigation.status}
+					className="px-3 py-1 text-xs"
+				/>
 			</div>
 
 			<div className="grid gap-4 lg:grid-cols-3">
@@ -161,7 +166,7 @@ function Detail({ data }: { data: InvestigationDetail }) {
 
 					<Section
 						title="Customer email"
-						description="Sent automatically after the guardrail passed."
+						description="Guardrail outcome and delivery status for each outreach attempt."
 					>
 						{data.emails.length === 0 ? (
 							<span className="text-muted-foreground">
@@ -171,15 +176,7 @@ function Detail({ data }: { data: InvestigationDetail }) {
 							data.emails.map((email) => (
 								<div key={email.id} className="space-y-2">
 									<div className="flex flex-wrap items-center gap-2 text-xs">
-										<span
-											className={`rounded-full px-2 py-0.5 font-medium ${
-												email.status === "sent"
-													? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-													: "bg-red-500/15 text-red-600 dark:text-red-400"
-											}`}
-										>
-											{email.status}
-										</span>
+										<StatusBadge status={email.status} />
 										<span className="font-mono text-[11px]">
 											{email.templateId}
 										</span>
@@ -194,6 +191,9 @@ function Detail({ data }: { data: InvestigationDetail }) {
 										<div className="text-[11px] text-red-600 dark:text-red-400">
 											Blocked: {email.blockReason}
 										</div>
+									) : null}
+									{email.status === "queued" ? (
+										<ReviewEmailActions investigationId={investigation.id} />
 									) : null}
 									<div className="font-medium">{email.subject}</div>
 									<pre className="overflow-x-auto whitespace-pre-wrap rounded bg-muted/40 p-3 text-[11px] leading-relaxed">

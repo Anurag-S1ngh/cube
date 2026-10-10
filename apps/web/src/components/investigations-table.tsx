@@ -6,38 +6,11 @@ import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { StatusBadge } from "@/components/status-badge";
+import { severityDot } from "@/lib/status";
 import { formatMoney, type InvestigationListItem } from "@/lib/types";
 
-const statusStyles: Record<string, string> = {
-	received: "bg-muted text-muted-foreground",
-	investigating: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
-	classified: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
-	recommended: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
-	actioned: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
-	resolved: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
-	escalated: "bg-red-500/15 text-red-600 dark:text-red-400",
-	failed: "bg-red-500/15 text-red-600 dark:text-red-400",
-};
-
-const severityDot: Record<string, string> = {
-	soft: "bg-amber-500",
-	hard: "bg-orange-500",
-	risk: "bg-red-500",
-};
-
 const PAGE_SIZE = 10;
-
-function StatusBadge({ status }: { status: string }) {
-	return (
-		<span
-			className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium text-[11px] capitalize ${
-				statusStyles[status] ?? "bg-muted text-muted-foreground"
-			}`}
-		>
-			{status}
-		</span>
-	);
-}
 
 const selectClass =
 	"h-8 rounded-md border bg-transparent px-2 text-xs capitalize focus:outline-none focus:ring-1 focus:ring-ring";
@@ -129,7 +102,9 @@ export function InvestigationsTable({
 
 			{visible.length === 0 ? (
 				<div className="rounded-md border p-8 text-center text-muted-foreground text-sm">
-					No investigations match these filters.
+					{rows.length === 0
+						? "No investigations yet. Use “Simulate failed payments” to generate some."
+						: "No investigations match these filters."}
 				</div>
 			) : (
 				<div className="overflow-x-auto rounded-md border">
@@ -214,7 +189,7 @@ export function InvestigationsTable({
 							variant="outline"
 							size="sm"
 							disabled={currentPage === 0}
-							onClick={() => setPage((p) => Math.max(0, p - 1))}
+							onClick={() => setPage(currentPage - 1)}
 						>
 							<ChevronLeft className="size-3.5" /> Prev
 						</Button>
@@ -222,7 +197,7 @@ export function InvestigationsTable({
 							variant="outline"
 							size="sm"
 							disabled={currentPage >= pageCount - 1}
-							onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+							onClick={() => setPage(currentPage + 1)}
 						>
 							Next <ChevronRight className="size-3.5" />
 						</Button>

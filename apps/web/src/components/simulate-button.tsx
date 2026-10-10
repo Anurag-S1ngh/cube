@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { SERVER_URL } from "@/lib/config";
+import { ApiError, simulateFailures } from "@/lib/api-client";
 
 export function SimulateButton() {
 	const router = useRouter();
@@ -14,15 +14,14 @@ export function SimulateButton() {
 	async function run() {
 		setPending(true);
 		try {
-			const res = await fetch(`${SERVER_URL}/mock/simulate?count=6`, {
-				method: "POST",
-				credentials: "include",
-			});
-			if (!res.ok) throw new Error(`simulate failed (${res.status})`);
-			const data = (await res.json()) as { created: number };
+			const data = await simulateFailures(6);
 			toast.success(`Simulated ${data.created} failed payments`);
 			router.refresh();
 		} catch (error) {
+			if (error instanceof ApiError && error.status === 401) {
+				router.replace("/login");
+				return;
+			}
 			toast.error(error instanceof Error ? error.message : "simulation failed");
 		} finally {
 			setPending(false);

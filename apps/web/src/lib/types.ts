@@ -21,6 +21,7 @@ export type Summary = {
 	revenueAtRiskCents: number;
 	emailsSent: number;
 	emailsBlocked: number;
+	emailsQueued: number;
 };
 
 export type EmailAction = {

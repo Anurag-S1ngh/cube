@@ -13,6 +13,8 @@ import {
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Investigations" };
+
 function Kpi({
 	label,
 	value,
@@ -77,7 +79,7 @@ export default async function Home() {
 				</div>
 			) : (
 				<>
-					<div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+					<div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
 						<Kpi label="Investigations" value={String(summary?.total ?? 0)} />
 						<Kpi
 							label="Revenue at risk"
@@ -91,6 +93,11 @@ export default async function Home() {
 									? `${summary.emailsBlocked} blocked by guardrails`
 									: undefined
 							}
+						/>
+						<Kpi
+							label="Awaiting approval"
+							value={String(summary?.emailsQueued ?? 0)}
+							hint={summary?.emailsQueued ? "queued for review" : undefined}
 						/>
 						<Kpi
 							label="Escalated"

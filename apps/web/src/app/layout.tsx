@@ -16,8 +16,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "cube",
-	description: "cube",
+	title: {
+		default: "Cube · Payment Failure Agent",
+		template: "%s · Cube",
+	},
+	description:
+		"Investigates failed payments, classifies the cause, recommends a mitigation and follows up with the customer.",
 };
 
 export default function RootLayout({
