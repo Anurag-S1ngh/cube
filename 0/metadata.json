@@ -1,0 +1,55 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4K2NX9KRWFEFNP98RZCTMAP",
+  "session_id": "ses_eda4d7eb6ffeziFdwt0KpEH2bL",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-10T14:15:36.027133Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "apps/server/src/index.ts",
+    "apps/web/.env.schema",
+    "apps/web/src/app/investigations/[id]/page.tsx",
+    "apps/web/src/lib/links.ts",
+    "apps/web/src/lib/types.ts",
+    "packages/db/src/schema/investigations.ts",
+    "turbo.json"
+  ],
+  "agent": "OpenCode",
+  "model": "deepseek-v4.1-flash",
+  "turn_id": "09bf54c23cb2",
+  "checkpoint_transcript_start": 287,
+  "transcript_lines_at_start": 287,
+  "compact_transcript_start": 287,
+  "token_usage": {
+    "input_tokens": 27968,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 6486272,
+    "output_tokens": 5625,
+    "api_call_count": 31
+  },
+  "session_metrics": {
+    "turn_count": 19
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-10T14:15:35.922438Z",
+    "agent_lines": 21,
+    "agent_removed": 22,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 21,
+    "total_lines_changed": 43,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
