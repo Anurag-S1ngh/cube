@@ -1,7 +1,9 @@
 import type { Database } from "@cube/db";
 import {
+	approvals,
 	auditLog,
 	causes,
+	emailActions,
 	investigations,
 	mitigationScenarios,
 	recommendations,
@@ -10,8 +12,11 @@ import { eq } from "drizzle-orm";
 
 import { classify } from "./classify";
 import { gatherContext } from "./context";
+import { formatMoney } from "./format";
 import { recommend } from "./mitigate";
+import { evaluateOutreachPolicy } from "./policy";
 import { createMitigationScenario, getFinancialContext } from "./tools/cfo";
+import { renderEmail, sendEmail } from "./tools/email";
 import type { AgentConfig } from "./types";
 
 async function setStatus(
@@ -136,11 +141,113 @@ export async function runInvestigation(
 			scenarioSource: scenario.source,
 		});
 
-		await setStatus(db, investigationId, "recommended");
+		await act(db, config, investigationId, ctx, classification, recommendation);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		await setStatus(db, investigationId, "failed", message);
 		await recordAudit(db, investigationId, "failed", { error: message });
 		throw error;
 	}
+}
+
+/**
+ * Execute the recommended actions. In full auto-send mode a guardrail still
+ * runs before any customer email, and its outcome is recorded for audit.
+ */
+async function act(
+	db: Database,
+	config: AgentConfig,
+	investigationId: string,
+	ctx: Awaited<ReturnType<typeof gatherContext>>,
+	classification: ReturnType<typeof classify>,
+	recommendation: ReturnType<typeof recommend>,
+): Promise<void> {
+	const emailAction = recommendation.actions.find(
+		(a) => a.type === "email_reminder",
+	);
+
+	if (!emailAction) {
+		// Nothing to send (e.g. silent retry, or a risk escalation).
+		await db
+			.delete(emailActions)
+			.where(eq(emailActions.investigationId, investigationId));
+		if (classification.severity === "risk") {
+			await recordAudit(db, investigationId, "escalated", {
+				reason: classification.label,
+			});
+			await setStatus(db, investigationId, "escalated");
+			return;
+		}
+		await recordAudit(db, investigationId, "actioned", {
+			actions: recommendation.actions.map((a) => a.type),
+		});
+		await setStatus(db, investigationId, "actioned");
+		return;
+	}
+
+	const policy = await evaluateOutreachPolicy(db, config, ctx, classification);
+	const to = ctx.customer.email ?? "";
+	const vars = {
+		customerName: ctx.customer.name ?? "there",
+		amountFormatted: formatMoney(ctx.event.amountCents, ctx.event.currency),
+		invoiceNumber: ctx.event.invoiceNumber ?? "your invoice",
+		updateLink: `https://pay.cube.test/update?invoice=${encodeURIComponent(
+			ctx.event.invoiceNumber ?? "",
+		)}&customer=${encodeURIComponent(ctx.customer.externalId)}`,
+	};
+	const rendered = renderEmail(emailAction.templateId, vars);
+
+	await db
+		.delete(emailActions)
+		.where(eq(emailActions.investigationId, investigationId));
+
+	if (!policy.allowed) {
+		await db.insert(emailActions).values({
+			investigationId,
+			templateId: emailAction.templateId ?? "reminder.generic_decline",
+			to,
+			subject: rendered.subject,
+			body: rendered.body,
+			status: "blocked",
+			provider: config.email.provider,
+			blockReason: policy.reason ?? "blocked by policy",
+		});
+		await recordAudit(db, investigationId, "email_blocked", {
+			reason: policy.reason,
+			checks: policy.checks,
+		});
+		await setStatus(db, investigationId, "recommended");
+		return;
+	}
+
+	const send = await sendEmail(config, {
+		to,
+		subject: rendered.subject,
+		body: rendered.body,
+	});
+	await db.insert(emailActions).values({
+		investigationId,
+		templateId: emailAction.templateId ?? "reminder.generic_decline",
+		to,
+		subject: rendered.subject,
+		body: rendered.body,
+		status: "sent",
+		provider: send.provider,
+		providerMessageId: send.providerMessageId,
+		sentAt: new Date(),
+	});
+	await db.insert(approvals).values({
+		investigationId,
+		actor: "agent",
+		decision: "auto",
+		reason: "auto-send mode",
+		metadata: { checks: policy.checks },
+	});
+	await recordAudit(db, investigationId, "email_sent", {
+		templateId: emailAction.templateId,
+		provider: send.provider,
+		providerMessageId: send.providerMessageId,
+		checks: policy.checks,
+	});
+	await setStatus(db, investigationId, "actioned");
 }
