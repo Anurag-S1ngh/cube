@@ -119,8 +119,57 @@ bun run dev                 # web on :3001, API on :3000
 | GET | `/investigations/:id` | session or key | Full investigation detail |
 | POST | `/investigations/:id/approve` | session or key | Send a queued email |
 | POST | `/investigations/:id/reject` | session or key | Reject a queued email |
+| POST | `/events/failed-payment` | API key | Raise an investigation from your own backend (idempotent) |
+| GET/POST/DELETE | `/webhook-endpoints[/:id]` | session | Manage outbound webhook endpoints |
+| GET | `/webhook-endpoints/:id/deliveries` | session | Delivery log for an endpoint |
 | POST | `/webhooks/stripe[/:projectId]` | HMAC | Provider failed-payment webhook |
 | POST | `/mock/simulate` | session or key | Fabricate failed charges (dev) |
+
+## Integrate from your backend (SDK)
+
+Install the typed client (`@cube/sdk`, in `packages/sdk`) and push failed
+payments from your own billing system — no provider webhook required:
+
+```ts
+import { Cube } from "@cube/sdk";
+
+const cube = new Cube({ apiKey: process.env.CUBE_API_KEY! });
+
+await cube.events.failedPayment(
+  {
+    customerExternalId: "cus_123",
+    customer: { name: "Acme", email: "billing@acme.com" },
+    invoiceNumber: "INV-1001",
+    amountCents: 4900,
+    declineCode: "insufficient_funds",
+  },
+  { idempotencyKey: "evt_1001" },
+);
+
+const page = await cube.investigations.list({ status: "recommended" });
+await cube.investigations.approve(page.investigations[0].id);
+```
+
+The client sends `Authorization: Bearer <apiKey>`, an `Idempotency-Key` on every
+mutation, and retries network errors / `429` / `5xx` with backoff.
+
+## Outbound webhooks
+
+Register endpoints in the dashboard (`/settings/api-keys`) or via
+`/webhook-endpoints`. Cube POSTs JSON when an investigation moves:
+`investigation.created`, `investigation.classified`, `investigation.actioned`,
+`investigation.escalated`, `investigation.resolved`, `email.queued`,
+`email.sent`, `email.blocked`, `email.failed`.
+
+Every request carries a `Cube-Signature: t=<unix>,v1=<hmac-sha256>` header over
+`"${t}.${rawBody}"`, signed with the endpoint's secret. Deliveries retry with
+exponential backoff and are logged per endpoint. Verify with the SDK:
+
+```ts
+import { verifyWebhookSignature } from "@cube/sdk";
+
+const ok = verifyWebhookSignature(rawBody, req.headers["cube-signature"], secret);
+```
 
 ## Scripts
 
@@ -143,7 +192,8 @@ bun run test
 ```
 
 Unit tests cover the classify/recommend/policy logic, formatting, the approval
-decision, and auth helpers (password, API keys, rate limiting).
+decision, ingest validation, the SDK client, and auth helpers (password, API
+keys, rate limiting).
 
 ## Notes
 
