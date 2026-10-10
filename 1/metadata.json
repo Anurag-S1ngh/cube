@@ -1,0 +1,80 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4K1PA3WJG96G5W6JFTEJFBN",
+  "session_id": "ses_ed9e5dca7ffezFc2PqNmm1lcxV",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-10T13:58:01.517837Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "save_step_count": 1,
+  "files_touched": [
+    "apps/server/src/routes/investigations.ts"
+  ],
+  "agent": "OpenCode",
+  "model": "deepseek-v4.1-flash",
+  "turn_id": "5f1b64bf2490",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 5066,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 25984,
+    "output_tokens": 510,
+    "api_call_count": 3
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-10T13:58:01.512467Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 0,
+    "total_lines_changed": 0,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 265,
+      "user_lines_removed": 56,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "apps/server/src/routes/investigations.ts": 3,
+        "apps/web/src/app/error.tsx": 26,
+        "apps/web/src/app/investigations/[id]/page.tsx": 13,
+        "apps/web/src/app/layout.tsx": 6,
+        "apps/web/src/app/loading.tsx": 5,
+        "apps/web/src/app/login/page.tsx": 1,
+        "apps/web/src/app/not-found.tsx": 16,
+        "apps/web/src/app/page.tsx": 8,
+        "apps/web/src/components/investigations-table.tsx": 7,
+        "apps/web/src/components/review-email-actions.tsx": 63,
+        "apps/web/src/components/simulate-button.tsx": 6,
+        "apps/web/src/components/status-badge.tsx": 19,
+        "apps/web/src/lib/api-client.ts": 68,
+        "apps/web/src/lib/status.ts": 23,
+        "apps/web/src/lib/types.ts": 1
+      },
+      "user_removed_per_file": {
+        "apps/web/src/app/investigations/[id]/page.tsx": 13,
+        "apps/web/src/app/layout.tsx": 2,
+        "apps/web/src/app/login/page.tsx": 1,
+        "apps/web/src/app/page.tsx": 1,
+        "apps/web/src/components/investigations-table.tsx": 32,
+        "apps/web/src/components/simulate-button.tsx": 7
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 265,
+      "agent_lines_removed": 56
+    }
+  ]
+}
