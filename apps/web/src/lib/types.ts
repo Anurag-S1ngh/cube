@@ -15,6 +15,13 @@ export type InvestigationListItem = {
 	cfoScenarioRef: string | null;
 };
 
+export type InvestigationPage = {
+	investigations: InvestigationListItem[];
+	total: number;
+	page: number;
+	pageSize: number;
+};
+
 export type Summary = {
 	total: number;
 	byStatus: Record<string, number>;

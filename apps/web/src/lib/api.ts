@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { SERVER_URL } from "@/lib/config";
 import type {
 	InvestigationDetail,
-	InvestigationListItem,
+	InvestigationPage,
 	Summary,
 } from "@/lib/types";
 
@@ -11,6 +11,7 @@ export type {
 	EmailAction,
 	InvestigationDetail,
 	InvestigationListItem,
+	InvestigationPage,
 	Summary,
 } from "@/lib/types";
 
@@ -33,15 +34,33 @@ async function getJson<T>(path: string): Promise<T> {
 	return (await res.json()) as T;
 }
 
+export type InvestigationQuery = {
+	q?: string;
+	status?: string;
+	severity?: string;
+	sort?: string;
+	order?: string;
+	page?: number;
+	pageSize?: number;
+};
+
 export function getSummary(): Promise<Summary> {
 	return getJson<Summary>("/investigations/summary");
 }
 
-export async function getInvestigations(): Promise<InvestigationListItem[]> {
-	const data = await getJson<{ investigations: InvestigationListItem[] }>(
-		"/investigations",
+export function getInvestigations(
+	query: InvestigationQuery = {},
+): Promise<InvestigationPage> {
+	const params = new URLSearchParams();
+	for (const [key, value] of Object.entries(query)) {
+		if (value !== undefined && value !== "" && value !== "all") {
+			params.set(key, String(value));
+		}
+	}
+	const qs = params.toString();
+	return getJson<InvestigationPage>(
+		`/investigations${qs ? `?${qs}` : ""}`,
 	);
-	return data.investigations;
 }
 
 export function getInvestigation(id: string): Promise<InvestigationDetail> {

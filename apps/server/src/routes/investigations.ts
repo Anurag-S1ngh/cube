@@ -6,11 +6,13 @@ import {
 	customers,
 	emailActions,
 	failedPaymentEvents,
+	investigationStatuses,
 	investigations,
 	mitigationScenarios,
 	recommendations,
 } from "@cube/db";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import type { InvestigationStatus } from "@cube/db";
+import { and, asc, count, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { Router } from "express";
 
@@ -22,6 +24,9 @@ export const investigationsRouter = Router();
 
 const uuidPattern =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const causeSeverities = ["soft", "hard", "risk"] as const;
+type CauseSeverity = (typeof causeSeverities)[number];
 
 // Every route below is scoped to the caller's projects (all owned projects for
 // a dashboard session, or the single project of an API key).
@@ -145,14 +150,51 @@ investigationsRouter.get("/summary", async (_req, res) => {
 	});
 });
 
-investigationsRouter.get("/", async (_req, res) => {
+investigationsRouter.get("/", async (req, res) => {
 	const projectIds = await callerProjectIds(res);
 	if (projectIds.length === 0) {
-		res.json({ investigations: [] });
+		res.json({ investigations: [], total: 0, page: 1, pageSize: 25 });
 		return;
 	}
 
-	const rows = await db
+	const page = Math.max(1, Number(req.query.page) || 1);
+	const pageSize = Math.min(
+		100,
+		Math.max(1, Number(req.query.pageSize) || 25),
+	);
+	const search = typeof req.query.q === "string" ? req.query.q.trim() : "";
+	const status = typeof req.query.status === "string" ? req.query.status : "";
+	const severity =
+		typeof req.query.severity === "string" ? req.query.severity : "";
+	const sort = typeof req.query.sort === "string" ? req.query.sort : "createdAt";
+	const direction = req.query.order === "asc" ? asc : desc;
+
+	const conditions = [inArray(customers.projectId, projectIds)];
+	if ((investigationStatuses as readonly string[]).includes(status)) {
+		conditions.push(
+			eq(investigations.status, status as InvestigationStatus),
+		);
+	}
+	if ((causeSeverities as readonly string[]).includes(severity)) {
+		conditions.push(eq(causes.severity, severity as CauseSeverity));
+	}
+	if (search) {
+		const like = `%${search}%`;
+		const match = or(
+			ilike(customers.name, like),
+			ilike(customers.email, like),
+			ilike(failedPaymentEvents.declineCode, like),
+			ilike(causes.code, like),
+		);
+		if (match) conditions.push(match);
+	}
+	const where = and(...conditions);
+
+	let orderBy;
+	if (sort === "amount") orderBy = direction(failedPaymentEvents.amountCents);
+	else if (sort === "confidence") orderBy = direction(causes.confidence);
+	else orderBy = direction(investigations.createdAt);
+	const baseFrom = db
 		.select({
 			id: investigations.id,
 			status: investigations.status,
@@ -175,12 +217,31 @@ investigationsRouter.get("/", async (_req, res) => {
 			failedPaymentEvents,
 			eq(failedPaymentEvents.id, investigations.eventId),
 		)
-		.leftJoin(causes, eq(causes.investigationId, investigations.id))
-		.where(inArray(customers.projectId, projectIds))
-		.orderBy(desc(investigations.createdAt))
-		.limit(100);
+		.leftJoin(causes, eq(causes.investigationId, investigations.id));
 
-	res.json({ investigations: rows });
+	const rows = await baseFrom
+		.where(where)
+		.orderBy(orderBy)
+		.limit(pageSize)
+		.offset((page - 1) * pageSize);
+
+	const [counted] = await db
+		.select({ value: count() })
+		.from(investigations)
+		.innerJoin(customers, eq(customers.id, investigations.customerId))
+		.innerJoin(
+			failedPaymentEvents,
+			eq(failedPaymentEvents.id, investigations.eventId),
+		)
+		.leftJoin(causes, eq(causes.investigationId, investigations.id))
+		.where(where);
+
+	res.json({
+		investigations: rows,
+		total: Number(counted?.value ?? 0),
+		page,
+		pageSize,
+	});
 });
 
 investigationsRouter.get("/:id", async (req, res) => {

@@ -1,19 +1,20 @@
 import { Card, CardHeader, CardTitle } from "@cube/ui/components/card";
 import { redirect } from "next/navigation";
 
-import { InvestigationsTable } from "@/components/investigations-table";
+import {
+	type InvestigationFilters,
+	InvestigationsTable,
+} from "@/components/investigations-table";
 import { LiveRefresh } from "@/components/live-refresh";
 import { SimulateButton } from "@/components/simulate-button";
 import { AuthError, getInvestigations, getSummary } from "@/lib/api";
-import {
-	formatMoney,
-	type InvestigationListItem,
-	type Summary,
-} from "@/lib/types";
+import { formatMoney, type Summary } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Investigations" };
+
+const PAGE_SIZE = 25;
 
 function Kpi({
 	label,
@@ -39,13 +40,34 @@ function Kpi({
 	);
 }
 
-export default async function Home() {
+export default async function Home({
+	searchParams,
+}: {
+	searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+	const sp = await searchParams;
+	const pick = (key: string): string => {
+		const value = sp[key];
+		return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
+	};
+	const filters: InvestigationFilters = {
+		q: pick("q"),
+		status: pick("status"),
+		severity: pick("severity"),
+		sort: pick("sort") || "createdAt",
+		order: pick("order") === "asc" ? "asc" : "desc",
+	};
+	const page = Math.max(1, Number(pick("page")) || 1);
+
 	let summary: Summary | null = null;
-	let rows: InvestigationListItem[] = [];
+	let data: Awaited<ReturnType<typeof getInvestigations>> | null = null;
 	let error: string | null = null;
 
 	try {
-		[summary, rows] = await Promise.all([getSummary(), getInvestigations()]);
+		[summary, data] = await Promise.all([
+			getSummary(),
+			getInvestigations({ ...filters, page, pageSize: PAGE_SIZE }),
+		]);
 	} catch (err) {
 		if (err instanceof AuthError) redirect("/login");
 		error = err instanceof Error ? err.message : "failed to load";
@@ -104,7 +126,13 @@ export default async function Home() {
 							value={String(summary?.byStatus.escalated ?? 0)}
 						/>
 					</div>
-					<InvestigationsTable rows={rows} />
+					<InvestigationsTable
+						rows={data?.investigations ?? []}
+						total={data?.total ?? 0}
+						page={data?.page ?? 1}
+						pageSize={data?.pageSize ?? PAGE_SIZE}
+						filters={filters}
+					/>
 				</>
 			)}
 		</main>

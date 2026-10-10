@@ -2,91 +2,127 @@
 
 import { Button } from "@cube/ui/components/button";
 import { Input } from "@cube/ui/components/input";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, Search } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { StatusBadge } from "@/components/status-badge";
 import { severityDot } from "@/lib/status";
 import { formatMoney, type InvestigationListItem } from "@/lib/types";
 
-const PAGE_SIZE = 10;
+const STATUSES = [
+	"received",
+	"investigating",
+	"classified",
+	"recommended",
+	"actioned",
+	"escalated",
+	"resolved",
+	"failed",
+];
+
+const SORTS = [
+	{ value: "createdAt", label: "Newest" },
+	{ value: "amount", label: "Amount" },
+	{ value: "confidence", label: "Confidence" },
+];
+
+export type InvestigationFilters = {
+	q: string;
+	status: string;
+	severity: string;
+	sort: string;
+	order: "asc" | "desc";
+};
 
 const selectClass =
 	"h-8 rounded-md border bg-transparent px-2 text-xs capitalize focus:outline-none focus:ring-1 focus:ring-ring";
 
 export function InvestigationsTable({
 	rows,
+	total,
+	page,
+	pageSize,
+	filters,
 }: {
 	rows: InvestigationListItem[];
+	total: number;
+	page: number;
+	pageSize: number;
+	filters: InvestigationFilters;
 }) {
-	const [query, setQuery] = useState("");
-	const [status, setStatus] = useState("all");
-	const [severity, setSeverity] = useState("all");
-	const [page, setPage] = useState(0);
+	const router = useRouter();
+	const pathname = usePathname();
+	const [query, setQuery] = useState(filters.q);
 
-	const statuses = useMemo(
-		() => Array.from(new Set(rows.map((r) => r.status))).sort(),
-		[rows],
-	);
+	const pageCount = Math.max(1, Math.ceil(total / pageSize));
+	const filtered =
+		filters.q !== "" ||
+		filters.status !== "" ||
+		filters.severity !== "" ||
+		filters.sort !== "createdAt" ||
+		filters.order !== "desc";
 
-	const filtered = useMemo(() => {
-		const q = query.trim().toLowerCase();
-		return rows.filter((row) => {
-			if (status !== "all" && row.status !== status) return false;
-			if (severity !== "all" && row.severity !== severity) return false;
-			if (!q) return true;
-			return [
-				row.customerName,
-				row.customerEmail,
-				row.declineCode,
-				row.causeCode,
-			]
-				.filter(Boolean)
-				.some((value) => value?.toLowerCase().includes(q));
+	// Filters live in the URL so they survive refresh, back/forward and sharing.
+	function apply(
+		next: Partial<InvestigationFilters> & { page?: number },
+	): void {
+		const merged = { ...filters, ...next };
+		const targetPage = next.page ?? 1;
+		const params = new URLSearchParams();
+		if (merged.q) params.set("q", merged.q);
+		if (merged.status && merged.status !== "all")
+			params.set("status", merged.status);
+		if (merged.severity && merged.severity !== "all")
+			params.set("severity", merged.severity);
+		if (merged.sort && merged.sort !== "createdAt")
+			params.set("sort", merged.sort);
+		if (merged.order && merged.order !== "desc")
+			params.set("order", merged.order);
+		if (targetPage > 1) params.set("page", String(targetPage));
+		const qs = params.toString();
+		router.replace((qs ? `${pathname}?${qs}` : pathname) as Route, {
+			scroll: false,
 		});
-	}, [rows, query, status, severity]);
-
-	const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-	const currentPage = Math.min(page, pageCount - 1);
-	const visible = filtered.slice(
-		currentPage * PAGE_SIZE,
-		currentPage * PAGE_SIZE + PAGE_SIZE,
-	);
-
-	function reset<T>(setter: (value: T) => void, value: T) {
-		setter(value);
-		setPage(0);
 	}
 
 	return (
 		<div className="space-y-3">
-			<div className="flex flex-wrap items-center gap-2">
+			<form
+				className="flex flex-wrap items-center gap-2"
+				onSubmit={(event) => {
+					event.preventDefault();
+					apply({ q: query });
+				}}
+			>
 				<div className="relative min-w-56 flex-1">
 					<Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
 					<Input
 						value={query}
-						onChange={(e) => reset(setQuery, e.target.value)}
-						placeholder="Search customer, decline or cause…"
+						onChange={(event) => setQuery(event.target.value)}
+						placeholder="Search customer, decline or cause… (Enter)"
 						className="h-8 pl-8 text-sm"
+						aria-label="Search investigations"
 					/>
 				</div>
 				<select
-					value={status}
-					onChange={(e) => reset(setStatus, e.target.value)}
+					value={filters.status || "all"}
+					onChange={(event) => apply({ status: event.target.value })}
 					className={selectClass}
 					aria-label="Filter by status"
 				>
 					<option value="all">All statuses</option>
-					{statuses.map((s) => (
-						<option key={s} value={s}>
-							{s}
+					{STATUSES.map((status) => (
+						<option key={status} value={status}>
+							{status}
 						</option>
 					))}
 				</select>
 				<select
-					value={severity}
-					onChange={(e) => reset(setSeverity, e.target.value)}
+					value={filters.severity || "all"}
+					onChange={(event) => apply({ severity: event.target.value })}
 					className={selectClass}
 					aria-label="Filter by severity"
 				>
@@ -95,16 +131,44 @@ export function InvestigationsTable({
 					<option value="hard">hard</option>
 					<option value="risk">risk</option>
 				</select>
+				<select
+					value={filters.sort || "createdAt"}
+					onChange={(event) => apply({ sort: event.target.value })}
+					className={selectClass}
+					aria-label="Sort by"
+				>
+					{SORTS.map((sort) => (
+						<option key={sort.value} value={sort.value}>
+							{sort.label}
+						</option>
+					))}
+				</select>
+				<Button
+					type="button"
+					variant="outline"
+					size="icon-sm"
+					aria-label={filters.order === "asc" ? "Ascending" : "Descending"}
+					title={filters.order === "asc" ? "Ascending" : "Descending"}
+					onClick={() =>
+						apply({ order: filters.order === "asc" ? "desc" : "asc" })
+					}
+				>
+					{filters.order === "asc" ? (
+						<ArrowUpAZ className="size-3.5" />
+					) : (
+						<ArrowDownAZ className="size-3.5" />
+					)}
+				</Button>
 				<span className="text-muted-foreground text-xs">
-					{filtered.length} of {rows.length}
+					{total} total
 				</span>
-			</div>
+			</form>
 
-			{visible.length === 0 ? (
+			{rows.length === 0 ? (
 				<div className="rounded-md border p-8 text-center text-muted-foreground text-sm">
-					{rows.length === 0
-						? "No investigations yet. Use “Simulate failed payments” to generate some."
-						: "No investigations match these filters."}
+					{filtered
+						? "No investigations match these filters."
+						: "No investigations yet. Use “Simulate failed payments” to generate some."}
 				</div>
 			) : (
 				<div className="overflow-x-auto rounded-md border">
@@ -120,7 +184,7 @@ export function InvestigationsTable({
 							</tr>
 						</thead>
 						<tbody>
-							{visible.map((row) => (
+							{rows.map((row) => (
 								<tr key={row.id} className="border-t hover:bg-muted/30">
 									<td className="px-3 py-2">
 										<Link
@@ -182,24 +246,24 @@ export function InvestigationsTable({
 			{pageCount > 1 ? (
 				<div className="flex items-center justify-between">
 					<span className="text-muted-foreground text-xs">
-						Page {currentPage + 1} of {pageCount}
+						Page {page} of {pageCount}
 					</span>
 					<div className="flex gap-2">
 						<Button
 							variant="outline"
 							size="sm"
-							disabled={currentPage === 0}
-							onClick={() => setPage(currentPage - 1)}
+							disabled={page <= 1}
+							onClick={() => apply({ page: page - 1 })}
 						>
-							<ChevronLeft className="size-3.5" /> Prev
+							Prev
 						</Button>
 						<Button
 							variant="outline"
 							size="sm"
-							disabled={currentPage >= pageCount - 1}
-							onClick={() => setPage(currentPage + 1)}
+							disabled={page >= pageCount}
+							onClick={() => apply({ page: page + 1 })}
 						>
-							Next <ChevronRight className="size-3.5" />
+							Next
 						</Button>
 					</div>
 				</div>
