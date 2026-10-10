@@ -49,10 +49,7 @@ export function ApiKeyManager({
 		setPending(true);
 		setNewSecret(null);
 		try {
-			const created = await createApiKey(
-				projectId,
-				name.trim() || "API key",
-			);
+			const created = await createApiKey(projectId, name.trim() || "API key");
 			setNewSecret({ name: created.apiKey.name, secret: created.secret });
 			setName("");
 			toast.success("API key created");
@@ -246,7 +243,7 @@ export function ApiKeyManager({
 									</Button>
 								</div>
 							</div>
-							<div className="mt-2 space-y-1 font-mono text-[11px] break-all">
+							<div className="mt-2 space-y-1 break-all font-mono text-[11px]">
 								<div>
 									<span className="text-muted-foreground">url: </span>
 									{info?.url ?? `/webhooks/stripe/${project.id}`}

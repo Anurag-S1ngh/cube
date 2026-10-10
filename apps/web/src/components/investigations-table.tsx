@@ -159,9 +159,7 @@ export function InvestigationsTable({
 						<ArrowDownAZ className="size-3.5" />
 					)}
 				</Button>
-				<span className="text-muted-foreground text-xs">
-					{total} total
-				</span>
+				<span className="text-muted-foreground text-xs">{total} total</span>
 			</form>
 
 			{rows.length === 0 ? (

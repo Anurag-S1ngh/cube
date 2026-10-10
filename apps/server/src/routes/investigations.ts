@@ -1,4 +1,5 @@
 import { ApprovalError, decideEmail } from "@cube/agent";
+import type { InvestigationStatus } from "@cube/db";
 import {
 	agentRuns,
 	auditLog,
@@ -11,7 +12,7 @@ import {
 	mitigationScenarios,
 	recommendations,
 } from "@cube/db";
-import type { InvestigationStatus } from "@cube/db";
+import type { SQL } from "drizzle-orm";
 import { and, asc, count, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { Router } from "express";
@@ -158,22 +159,18 @@ investigationsRouter.get("/", async (req, res) => {
 	}
 
 	const page = Math.max(1, Number(req.query.page) || 1);
-	const pageSize = Math.min(
-		100,
-		Math.max(1, Number(req.query.pageSize) || 25),
-	);
+	const pageSize = Math.min(100, Math.max(1, Number(req.query.pageSize) || 25));
 	const search = typeof req.query.q === "string" ? req.query.q.trim() : "";
 	const status = typeof req.query.status === "string" ? req.query.status : "";
 	const severity =
 		typeof req.query.severity === "string" ? req.query.severity : "";
-	const sort = typeof req.query.sort === "string" ? req.query.sort : "createdAt";
+	const sort =
+		typeof req.query.sort === "string" ? req.query.sort : "createdAt";
 	const direction = req.query.order === "asc" ? asc : desc;
 
 	const conditions = [inArray(customers.projectId, projectIds)];
 	if ((investigationStatuses as readonly string[]).includes(status)) {
-		conditions.push(
-			eq(investigations.status, status as InvestigationStatus),
-		);
+		conditions.push(eq(investigations.status, status as InvestigationStatus));
 	}
 	if ((causeSeverities as readonly string[]).includes(severity)) {
 		conditions.push(eq(causes.severity, severity as CauseSeverity));
@@ -190,7 +187,7 @@ investigationsRouter.get("/", async (req, res) => {
 	}
 	const where = and(...conditions);
 
-	let orderBy;
+	let orderBy: SQL<unknown>;
 	if (sort === "amount") orderBy = direction(failedPaymentEvents.amountCents);
 	else if (sort === "confidence") orderBy = direction(causes.confidence);
 	else orderBy = direction(investigations.createdAt);

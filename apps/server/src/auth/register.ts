@@ -3,10 +3,9 @@ import { randomBytes } from "node:crypto";
 import type { Database } from "@cube/db";
 import { apiKeys, projects, users } from "@cube/db";
 import { eq } from "drizzle-orm";
-
+import { generateWebhookSecret } from "../webhookSecret";
 import { generateApiKey } from "./apiKeys";
 import { hashPassword } from "./password";
-import { generateWebhookSecret } from "../webhookSecret";
 
 export class RegisterError extends Error {
 	readonly status: number;
@@ -47,7 +46,8 @@ async function uniqueUsername(
 	database: Database,
 	base: string,
 ): Promise<string> {
-	const safe = (base || "user").replace(/[^a-z0-9._-]/gi, "").slice(0, 24) || "user";
+	const safe =
+		(base || "user").replace(/[^a-z0-9._-]/gi, "").slice(0, 24) || "user";
 	let candidate = safe;
 	for (let i = 0; i < 5; i += 1) {
 		const [existing] = await database
@@ -103,7 +103,10 @@ export async function register(
 	}
 
 	const passwordHash = await hashPassword(input.password);
-	const username = await uniqueUsername(database, input.name ?? email.split("@")[0] ?? "user");
+	const username = await uniqueUsername(
+		database,
+		input.name ?? email.split("@")[0] ?? "user",
+	);
 	const slug = await uniqueSlug(
 		database,
 		slugify(input.projectName ?? `${email.split("@")[0]}'s workspace`),

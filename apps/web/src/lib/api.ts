@@ -62,9 +62,7 @@ export function getInvestigations(
 		}
 	}
 	const qs = params.toString();
-	return getJson<InvestigationPage>(
-		`/investigations${qs ? `?${qs}` : ""}`,
-	);
+	return getJson<InvestigationPage>(`/investigations${qs ? `?${qs}` : ""}`);
 }
 
 export function getInvestigation(id: string): Promise<InvestigationDetail> {

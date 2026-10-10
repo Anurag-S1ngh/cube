@@ -68,7 +68,7 @@ async function handleStripe(
 	}
 
 	const payload = req.body as PaymentFailurePayload;
-	if (!payload || payload.type !== "invoice.payment_failed") {
+	if (payload?.type !== "invoice.payment_failed") {
 		res.status(400).json({ error: "unsupported event type" });
 		return;
 	}

@@ -55,7 +55,7 @@ export const projectsRouter = Router();
 
 projectsRouter.get("/", requireSession(), async (_req, res) => {
 	const auth = getAuth(res);
-	if (!auth || auth.kind !== "session") {
+	if (auth?.kind !== "session") {
 		res.status(401).json({ error: "session required" });
 		return;
 	}
@@ -63,44 +63,52 @@ projectsRouter.get("/", requireSession(), async (_req, res) => {
 });
 
 // Return the project's current webhook endpoint + signing secret (owner only).
-projectsRouter.get("/:id/webhook-secret", requireSession(), async (req, res) => {
-	const auth = getAuth(res);
-	if (!auth || auth.kind !== "session") {
-		res.status(401).json({ error: "session required" });
-		return;
-	}
-	const id = typeof req.params.id === "string" ? req.params.id : "";
-	const project = await ownedProject(id, auth.user.id);
-	if (!project) {
-		res.status(404).json({ error: "project not found" });
-		return;
-	}
-	res.json({
-		webhookUrl: `${ENV.SERVER_PUBLIC_URL}/webhooks/stripe/${project.id}`,
-		webhookSecret: project.webhookSecret,
-	});
-});
+projectsRouter.get(
+	"/:id/webhook-secret",
+	requireSession(),
+	async (req, res) => {
+		const auth = getAuth(res);
+		if (auth?.kind !== "session") {
+			res.status(401).json({ error: "session required" });
+			return;
+		}
+		const id = typeof req.params.id === "string" ? req.params.id : "";
+		const project = await ownedProject(id, auth.user.id);
+		if (!project) {
+			res.status(404).json({ error: "project not found" });
+			return;
+		}
+		res.json({
+			webhookUrl: `${ENV.SERVER_PUBLIC_URL}/webhooks/stripe/${project.id}`,
+			webhookSecret: project.webhookSecret,
+		});
+	},
+);
 
 // Rotate the project's webhook signing secret.
-projectsRouter.post("/:id/webhook-secret", requireSession(), async (req, res) => {
-	const auth = getAuth(res);
-	if (!auth || auth.kind !== "session") {
-		res.status(401).json({ error: "session required" });
-		return;
-	}
-	const id = typeof req.params.id === "string" ? req.params.id : "";
-	const project = await ownedProject(id, auth.user.id);
-	if (!project) {
-		res.status(404).json({ error: "project not found" });
-		return;
-	}
-	const webhookSecret = generateWebhookSecret();
-	await db
-		.update(projects)
-		.set({ webhookSecret })
-		.where(eq(projects.id, project.id));
-	res.json({
-		webhookUrl: `${ENV.SERVER_PUBLIC_URL}/webhooks/stripe/${project.id}`,
-		webhookSecret,
-	});
-});
+projectsRouter.post(
+	"/:id/webhook-secret",
+	requireSession(),
+	async (req, res) => {
+		const auth = getAuth(res);
+		if (auth?.kind !== "session") {
+			res.status(401).json({ error: "session required" });
+			return;
+		}
+		const id = typeof req.params.id === "string" ? req.params.id : "";
+		const project = await ownedProject(id, auth.user.id);
+		if (!project) {
+			res.status(404).json({ error: "project not found" });
+			return;
+		}
+		const webhookSecret = generateWebhookSecret();
+		await db
+			.update(projects)
+			.set({ webhookSecret })
+			.where(eq(projects.id, project.id));
+		res.json({
+			webhookUrl: `${ENV.SERVER_PUBLIC_URL}/webhooks/stripe/${project.id}`,
+			webhookSecret,
+		});
+	},
+);
