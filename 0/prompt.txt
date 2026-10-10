@@ -1,1 +1,1 @@
-everything good here
+yes do commit when you have substantial progress, don't rely on me saying do git commit
