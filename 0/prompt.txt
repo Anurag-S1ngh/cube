@@ -1,0 +1,1 @@
+finish them, my main focus is functinality only for now and also add health check endpoint + update readme too
