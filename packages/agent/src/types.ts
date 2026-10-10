@@ -16,6 +16,8 @@ export type AgentConfig = {
 		provider: EmailProviderName;
 		apiKey?: string;
 		from: string;
+		/** When set, redirect every send here (staging/testing safety net). */
+		overrideTo?: string;
 	};
 	cfo: {
 		mcpUrl: string;

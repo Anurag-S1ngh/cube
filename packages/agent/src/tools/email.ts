@@ -137,9 +137,12 @@ export async function sendEmail(
 	config: AgentConfig,
 	message: { to: string; subject: string; body: string },
 ): Promise<SendResult> {
+	// Staging safety net: route everything to the override address.
+	const recipient = config.email.overrideTo || message.to;
+
 	if (config.email.provider === "resend") {
 		if (!config.email.apiKey) {
-			throw new Error("EMAIL_API_KEY is required for the resend provider");
+			throw new Error("RESEND_API_KEY is required for the resend provider");
 		}
 		const response = await fetch("https://api.resend.com/emails", {
 			method: "POST",
@@ -149,13 +152,16 @@ export async function sendEmail(
 			},
 			body: JSON.stringify({
 				from: config.email.from,
-				to: message.to,
+				to: recipient,
 				subject: message.subject,
 				text: message.body,
 			}),
 		});
 		if (!response.ok) {
-			throw new Error(`resend send failed: HTTP ${response.status}`);
+			const detail = await response.text().catch(() => "");
+			throw new Error(
+				`resend send failed: HTTP ${response.status}${detail ? ` — ${detail.slice(0, 200)}` : ""}`,
+			);
 		}
 		const data = (await response.json()) as { id?: string };
 		return {

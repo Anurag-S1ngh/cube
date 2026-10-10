@@ -59,6 +59,7 @@
     "EMAIL_PROVIDER",
     "RESEND_API_KEY",
     "EMAIL_FROM",
+    "EMAIL_OVERRIDE_TO",
     "LLM_API_KEY",
     "LLM_BASE_URL",
     "LLM_MODEL",

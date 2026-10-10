@@ -18,6 +18,7 @@ export const agentConfig: AgentConfig = {
 		provider: emailProvider,
 		apiKey: resendKey,
 		from: ENV.EMAIL_FROM ?? "onboarding@resend.dev",
+		overrideTo: ENV.EMAIL_OVERRIDE_TO || undefined,
 	},
 	cfo: {
 		mcpUrl: ENV.CFO_AI_MCP_URL,
