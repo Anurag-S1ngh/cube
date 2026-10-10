@@ -1,1 +1,1 @@
-also spwan multiple subagents to finish these tasks fast
+finish them, my main focus is functinality only for now and also add health check endpoint + update readme too
