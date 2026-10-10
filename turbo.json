@@ -13,6 +13,15 @@
     "check-types": {
       "dependsOn": ["^check-types"]
     },
+    "test": {
+      "cache": false
+    },
+    "seed": {
+      "cache": false
+    },
+    "simulate": {
+      "cache": false
+    },
     "dev": {
       "cache": false,
       "persistent": true
@@ -40,6 +49,18 @@
     "DATABASE_URL",
     "NEXT_PUBLIC_SERVER_URL",
     "NODE_ENV",
+    "CFO_AI_MCP_URL",
+    "CFO_AI_TOKEN",
+    "CFO_AI_ORG_ID",
+    "NEATLOGS_API_KEY",
+    "EMAIL_PROVIDER",
+    "EMAIL_API_KEY",
+    "EMAIL_FROM",
+    "LLM_API_KEY",
+    "LLM_BASE_URL",
+    "LLM_MODEL",
+    "MOCK_WEBHOOK_SECRET",
+    "AGENT_AUTO_SEND",
     "VERCEL",
     "VERCEL_ENV",
     "VERCEL_PROJECT_PRODUCTION_URL",

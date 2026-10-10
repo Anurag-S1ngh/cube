@@ -26,6 +26,7 @@ export async function evaluateOutreachPolicy(
 	_config: AgentConfig,
 	ctx: InvestigationContext,
 	classification: Classification,
+	now: Date = new Date(),
 ): Promise<PolicyDecision> {
 	const email = ctx.customer.email ?? "";
 
@@ -34,7 +35,7 @@ export async function evaluateOutreachPolicy(
 	const amountSane =
 		ctx.event.amountCents > 0 && ctx.event.amountCents <= MAX_AMOUNT_CENTS;
 
-	const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+	const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 	const [recent] = await db
 		.select({ value: count() })
 		.from(emailActions)
@@ -47,7 +48,7 @@ export async function evaluateOutreachPolicy(
 		);
 	const underRateLimit = Number(recent?.value ?? 0) < MAX_EMAILS_PER_24H;
 
-	const hour = new Date().getHours();
+	const hour = now.getHours();
 	const outsideQuietHours = hour >= QUIET_HOURS_END && hour < QUIET_HOURS_START;
 
 	const checks = {
