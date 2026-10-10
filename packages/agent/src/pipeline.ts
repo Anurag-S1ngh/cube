@@ -1,10 +1,17 @@
 import type { Database } from "@cube/db";
-import { auditLog, causes, investigations, recommendations } from "@cube/db";
+import {
+	auditLog,
+	causes,
+	investigations,
+	mitigationScenarios,
+	recommendations,
+} from "@cube/db";
 import { eq } from "drizzle-orm";
 
 import { classify } from "./classify";
 import { gatherContext } from "./context";
 import { recommend } from "./mitigate";
+import { createMitigationScenario, getFinancialContext } from "./tools/cfo";
 import type { AgentConfig } from "./types";
 
 async function setStatus(
@@ -48,13 +55,26 @@ async function recordAudit(
  */
 export async function runInvestigation(
 	db: Database,
-	_config: AgentConfig,
+	config: AgentConfig,
 	investigationId: string,
 ): Promise<void> {
 	await setStatus(db, investigationId, "investigating");
 
 	try {
 		const ctx = await gatherContext(db, investigationId);
+
+		// Enrich with the customer's financial position (cfo.ai or ledger).
+		const finance = await getFinancialContext(db, config, ctx);
+		await db
+			.update(investigations)
+			.set({
+				outstandingBalanceCents: finance.outstandingBalanceCents,
+				revenueAtRiskCents: finance.revenueAtRiskCents,
+				cfoEvidence: finance.evidence,
+				updatedAt: new Date(),
+			})
+			.where(eq(investigations.id, investigationId));
+
 		const classification = classify(ctx);
 
 		await db.delete(causes).where(eq(causes.investigationId, investigationId));
@@ -66,6 +86,7 @@ export async function runInvestigation(
 			confidence: classification.confidence,
 			evidence: classification.evidence,
 		});
+		await setStatus(db, investigationId, "classified");
 
 		const recommendation = recommend(ctx, classification);
 
@@ -80,14 +101,39 @@ export async function runInvestigation(
 			cashImpactCents: recommendation.cashImpactCents,
 		});
 
+		// Model the recovery as a deterministic cfo.ai scenario.
+		const scenario = await createMitigationScenario(config, {
+			investigationId,
+			kind: classification.code,
+			amountCents: recommendation.cashImpactCents,
+			customer: ctx.customer.name ?? ctx.customer.externalId,
+		});
+		await db
+			.delete(mitigationScenarios)
+			.where(eq(mitigationScenarios.investigationId, investigationId));
+		await db.insert(mitigationScenarios).values({
+			investigationId,
+			cfoRef: scenario.ref,
+			kind: scenario.kind,
+			projectedInflowCents: scenario.projectedInflowCents,
+			assumptions: scenario.assumptions,
+		});
+		await db
+			.update(investigations)
+			.set({ cfoScenarioRef: scenario.ref, updatedAt: new Date() })
+			.where(eq(investigations.id, investigationId));
+
 		await recordAudit(db, investigationId, "classified", {
 			cause: classification.code,
 			confidence: classification.confidence,
 			severity: classification.severity,
+			financeSource: finance.source,
 		});
 		await recordAudit(db, investigationId, "recommended", {
 			actions: recommendation.actions.map((a) => a.type),
 			retryScheduleDays: recommendation.retryScheduleDays,
+			scenarioRef: scenario.ref,
+			scenarioSource: scenario.source,
 		});
 
 		await setStatus(db, investigationId, "recommended");
